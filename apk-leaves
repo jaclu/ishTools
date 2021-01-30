@@ -74,25 +74,28 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-
-debug "$prog_description"
 #
-# Clearing $out_file if it existed
+#  Main
+#
+debug "$prog_description"
+
+#
+# Clearing $out_file if it existed.
 #
 if [ "$out_file" != "" ] && [ -f $out_file ]; then
     rm -i $out_file
 fi
 
 #
-# Gathering list of all installed apks
+# Gathering list of all installed apks.
 #
 debug "Gathering all installed apks ..." " "
 apk_list=$(apk list -I | sort | awk '{print $1}')
 debug "Done!"
 
 #
-# Handling the items in the list not as a list, in order for
-# ash to be able to do this
+# Handling the items in the list not as a list, 
+# in order for ash to be able to do this.
 #
 IFS="
 "
@@ -105,7 +108,7 @@ for apk_long in $apk_list; do
     if [ $(apk info -r $apk_short | tail -n +2 | wc -w) -eq 0 ]; then
         if [ "$out_file" != "" ]; then
             echo $apk_short >> $out_file
-        echo $apk_short
         fi
+        echo $apk_short
     fi
 done
