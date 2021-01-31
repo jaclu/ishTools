@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/sh
 #
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-01-31
 # License: MIT
@@ -8,10 +8,12 @@
 #
 # This is a turn-key restore of a fresh iSH back to a useable state
 #
+# Works both on AppStor and TestFlight iSH
+#
 # copy it outside the iSH filesystem in order for it to survive a delete - install cycle
 # I use mount -t ios . /mnt
-# and then select a dir on iCloud, so I can get all my various devices back from the same source.
-# But im sure there are other ways to do it,
+# and then select a dir on iCloud, so I can get all my various device restored from the same source.
+# But im sure there are other ways to do it.
 #
 # Any feedback / bug reports welcome!
 #
@@ -19,6 +21,7 @@
 
 #
 #  Set to 0 if you dont want to generate ssh host keys
+#  it does take a while...
 #
 do_ssh_host_keys=1
 
@@ -86,7 +89,7 @@ fi
 
 
 if [ $do_ssh_host_keys -eq 1 ]; then
-    echo "===  Generating host keys, will take a while, stay put :)  ==="
+    echo "===  Generating host keys, will take a while...  ==="
     ssh-keygen -A
 	echo
 fi
