@@ -40,8 +40,7 @@ display_help() {
     echo "Recomended usage is one of the following:"
     echo
     echo "$prog_name -d -o filename"
-    echo "   To both get progress and the output saved for later usage,"
-    echo "   like re-populating your iSH if you have to reinstall."
+    echo "   To both get progress and the output saved in a file without any gunk"
     echo
     echo "$prog_name > filename"
     echo "   Same end result, but no progress"
