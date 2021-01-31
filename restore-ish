@@ -38,32 +38,32 @@ home_tgz=/mnt/home.tgz
 
 
 
-echo "=====   Copying some files to /etc   ====="
+echo "===  Copying some files to /etc  ==="
 cp /mnt/files/repositories /etc/apk
 cp /mnt/files/hosts /etc
 echo
 
 
-echo "=====   using Alpine 3.12 repository and doing upgrade   ====="
+echo "===  using Alpine 3.12 repository and doing upgrade  ==="
 apk update
 apk upgrade
 echo
 
 
-echo "=====   Installing my selection of software   ====="
+echo "===  Installing my selection of software  ==="
 # I gathered theese leave nodes with apk-leaves (same repo)
 apk add bash emacs-nox git joe mosh openssh rsync sudo tmux
 echo
 
 
-echo "=====   Adding user(s) and activating sudo   ====="
+echo "===  Adding user(s) and activating sudo  ==="
 echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 adduser jaclu -D
 addgroup jaclu wheel
 echo
 
 
-echo "=====   Restoring home dirs   ====="
+echo "===  Restoring home dirs  ==="
 cd /
 if [ -f $root_tgz ]; then
     echo -n "restoring /root ... "
@@ -79,14 +79,14 @@ echo
 
 
 if [ -x $extra_tasks ]; then
-    echo "=====   Running additional local restore tasks   ====="
+    echo "===  Running additional local restore tasks  ==="
     $extra_tasks
     echo
 fi
 
 
 if [ $do_ssh_host_keys -eq 1 ]; then
-    echo "=====   Generating host keys, will take a while, stay put :)   ====="
+    echo "===  Generating host keys, will take a while, stay put :)  ==="
     ssh-keygen -A
 	echo
 fi
