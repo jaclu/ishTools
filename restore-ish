@@ -55,7 +55,7 @@ echo
 
 echo "===  Installing my selection of software  ==="
 # I gathered theese leave nodes with apk-leaves (same repo)
-apk add bash emacs-nox git joe mosh openssh rsync sudo tmux
+apk add bash coreutils emacs-nox git joe mosh openssh rsync sudo tmux zsh
 echo
 
 
