@@ -99,11 +99,17 @@ debug "Done!"
 IFS="
 "
 for apk_long in $apk_list; do
+    #
     # removing version and revision, ie foo-bar-1.3.4-r4 -> foo-bar
-    s=${apk_long%-*}  # removing last dash and after
-    apk_short=${s%-*} # removing last dash and after
+    #
+    s=${apk_long%-*}  # removing last dash and after (revision)
+    apk_short=${s%-*} # removing last dash and after (version)
 
     debug "    checking $apk_short"
+    #
+    # If there are any words after line two in the output of apk info -r apkname,
+    # it would indicate this apk has a dependency, so we skip those.
+    #
     if [ $(apk info -r $apk_short | tail -n +2 | wc -w) -eq 0 ]; then
         if [ "$out_file" != "" ]; then
             echo $apk_short >> $out_file
