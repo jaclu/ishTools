@@ -1,0 +1,18 @@
+#!/bin/sh
+
+
+echo "===  Deploying helpfull_scripts  ==="
+cd ~/git_repos/mine/helpfull_scripts
+./deploy system
+echo
+
+
+echo "===  running common_pull.sh all  ==="
+~/.local/bin/common_pull.sh all
+echo
+
+
+echo "===  deploying helpfull_scripts again, in case they have been updated  ==="
+cd ~/git_repos/mine/helpfull_scripts
+./deploy system
+echo

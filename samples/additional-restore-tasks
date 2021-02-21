@@ -1,0 +1,35 @@
+#!/bin/sh
+
+if [ "$my_uname" == "" ]; then
+    echo
+    echo "ERROR: additonal-restore-tasks can not run without a my_uname set!"
+    echo
+    exit 1
+fi
+
+
+ln -sf /home/${my_uname}/git_repos/mine/tmux_common /usr/local
+ln -sf /home/${my_uname}/git_repos/mine/shell_envs /usr/local
+ln -sf /home/${my_uname}/git_repos/others/bash-git-prompt /usr/local
+
+
+echo "===  Soft linking /usr/local/bin/path_modify.sh  ==="
+ln -sf /usr/local/shell_envs/scripts/path_modify.sh /usr/local/bin
+echo
+
+
+if [ "$my_uname" != "" ]; then
+    my_additional_stuff=/mnt/bin/additional-as-$my_uname
+    if [ -x $my_additional_stuff ]; then
+        echo "===  running: $my_additional_stuff  ==="
+        echo
+        /bin/su -c $my_additional_stuff - $my_uname
+        echo
+    else
+        if [ -f $my_additional_stuff ]; then
+            echo
+            echo "*** WARNING  $my_additional_stuff is not a runable script!"
+            echo
+        fi
+    fi
+fi
