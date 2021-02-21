@@ -63,6 +63,8 @@ echo
 echo "===  Restoring sshd host keys  ==="
 cd /etc/ssh
 tar xvfz /mnt/files/sshd_host_keys.tgz
+echo
+
 
 echo "===  Restoring home dirs  ==="
 cd /home
