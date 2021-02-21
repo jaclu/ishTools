@@ -2,8 +2,7 @@
 #
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-21
 # License: MIT
-_version=0.2.1
-# Version: 0.2.1 2021-02-21
+# Version: 0.2.2 2021-02-21
 #                Added a lot of features, including sshd host keys if found.
 #                Correctly identifies if the system is using AOK filesystem
 #                And adjusts procedure accordingly
@@ -79,6 +78,15 @@ fi
 echo
 
 
+if [ "$FS" = "AOK" ]; then
+    echo "===  Somme AOK tweaks, that are harmless   ==="
+    prof_dbg=/tmp/profile.debug
+    if [ -f $prof_dbg ]; then
+	echo "---  chmod 666 $prof_dbg  ---"
+	chmod 666 $prof_dbg
+    fi
+fi
+echo 
 
 
 echo "===  Copying some files to /etc  ==="
