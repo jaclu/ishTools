@@ -157,7 +157,7 @@ if [ "$my_uname" != "" ]; then
     grep $my_uname /etc/passwd > /dev/null
     if [ $? -eq 1 ]; then
         echo "---  adding user $my_uname  --"
-        adduser $my_uname -D
+        adduser -s /bin/ash -D $my_uname
         # This adds no pw sudo
         addgroup $my_uname wheel
     fi
