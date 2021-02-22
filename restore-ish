@@ -2,7 +2,9 @@
 #
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-21
 # License: MIT
-# Version: 0.2.6 2021-02-22
+# Version: 0.2.7 2021-02-22
+#                added apk shaddow - needed on FS ish for useradd
+#          0.2.6a 2021-02-22
 #                Now using useradd to create user
 #                Adding patch feature, so you dont need to retar
 #                home dirs for minor changes, until next tar use
@@ -129,7 +131,7 @@ echo
 
 
 echo "===  Installing my selection of software  ==="
-apk add bash coreutils emacs-nox git joe mosh openssh rsync sudo tmux zsh
+apk add coreutils openssh shadow sudo tmux mosh bash zsh git rsync emacs-nox joe
 echo
 
 
@@ -169,7 +171,7 @@ if [ $activate_sshd_service -eq 1 ] && [ "$(ps axu|grep sshd|grep -v grep)" = ""
         echo "---  hacking sshd as a boot time service  ---"
         if [ "$(grep -i 'port 1022' /etc/ssh/sshd_config)" = "" ]; then
 	    echo "---  adding port 1022 to /etc/ssh/sshd_config  ---"
-  	    echo "port 1022" >> /etc/ssh/sshd_config
+  	    echo "Port 1022" >> /etc/ssh/sshd_config
         fi
         if [ "$(grep sshd /etc/inittab)" = "" ]; then
 	    echo "---  adding sshd restart to /etc/inittab  ---"
