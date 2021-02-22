@@ -18,3 +18,7 @@ For the default iSH filesystem
 
 ### initial-apks-AOK
 For the AOK filesystem
+
+## samples
+This is a subset of my extra_tasks, with any more private items filtered out :)
+Mostly to give you a general idea of how I use it.
