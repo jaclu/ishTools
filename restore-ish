@@ -2,7 +2,10 @@
 #
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-21
 # License: MIT
-# Version: 0.2.4 2021-02-22
+# Version: 0.2.5 2021-02-22
+#                Setting up sshd as a boot time service on ish FS
+#                printing a reminder if the added user has no password
+#          0.2.4 2021-02-22
 #                Setting timezone to CET (Amsterdam)
 #          0.2.3 2021-02-22
 #                Setting shell to /bin/ash for $my_uname
@@ -31,7 +34,7 @@
 # Set to 0 if you dont want to run sshd automatically
 # at boot, this is ignored if this is a AOK filesystem
 #
-activate_sshd_service=0
+activate_sshd_service=1
 
 
 #
@@ -120,23 +123,65 @@ fi
 echo
 
 
+echo "===  Installing my selection of software  ==="
+apk add bash coreutils emacs-nox git joe mosh openssh rsync sudo tmux zsh
+echo
+
+
 if [ "$(date |grep CET)" = "" ]; then
     echo "===  Setting timezone to CET (Amsterdam)  ==="
     apk add tzdata
     cp /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
     rm /etc/timezone
     echo "???Europe/Amsterdam" > /etc/timezone
-    apk del tzdata
+    # Not needed unless when you change tz, but I will leave it in for now...
+    #apk del tzdata 
     echo
 fi
 
 
-echo "===  Installing my selection of software  ==="
-apk_instal_scr=/mnt/specifics/FS/${FS}/my_apks
-if [ -x $apk_instal_scr ]; then
-    $apk_instal_scr
-else
-    echo "*** Not found: $apk_instal_scr"
+echo "===  Unpacking sshd host keys for: $this_host  (if found)  ==="
+sshd_host_keys=/mnt/specifics/${this_host}-sshd_host_keys.tgz
+if [ -f "$sshd_host_keys" ]; then
+    cd /etc/ssh
+    tar xvfz $sshd_host_keys
+fi
+echo
+
+
+if [ $activate_sshd_service -eq 1 ] && [ "$(ps axu|grep sshd|grep -v grep)" = "" ]; then
+    if [ "$FS" = "AOK" ]; then
+        echo "---  AOK enable_sshd  ---"
+        enable_sshd
+    else
+        apk add openrc
+        #rc-update add sshd
+
+        echo "---  Generating host keys if not restored, might take a while...  ---"
+        ssh-keygen -A
+        echo
+
+        echo "---  hacking sshd as a boot time service  ---"
+        if [ "$(grep -i 'port 1022' /etc/ssh/sshd_config)" = "" ]; then
+	    echo "---  adding port 1022 to /etc/ssh/sshd_config  ---"
+  	    echo "port 1022" >> /etc/ssh/sshd_config
+        fi
+        if [ "$(grep sshd /etc/inittab)" = "" ]; then
+	    echo "---  adding sshd restart to /etc/inittab  ---"
+            echo "::sysinit:/etc/init.d/sshd restart" >> /etc/inittab
+        fi
+        echo "-->  sshd will start on next reboot  <--"
+        echo
+    fi
+    echo
+fi
+
+
+echo "===  Ensure no-pw sudo for group wheel is active  ==="
+grep restore-ish /etc/sudoers > /dev/null
+if [ $? -eq 1 ]; then
+    echo "---  adding %wheel NOPASSWD to /etc/sudoers  --"
+    echo "%wheel ALL=(ALL) NOPASSWD: ALL # added by restore-ish" >> /etc/sudoers
 fi
 echo
 
@@ -158,17 +203,8 @@ if [ "$FS" != "AOK" ]; then
 fi
 
 
-echo "===  Ensure no pw sudo for group wheel is active  ==="
-grep restore-ish /etc/sudoers > /dev/null
-if [ $? -eq 1 ]; then
-    echo "---  adding %wheel NOPASSWD to /etc/sudoers  --"
-    echo "%wheel ALL=(ALL) NOPASSWD: ALL # added by restore-ish" >> /etc/sudoers
-fi
-echo
-
-
 if [ "$my_uname" != "" ]; then
-    echo "===  Ensure user $my_uname has been created  ==="
+    echo "===  Restoring $my_uname  ==="
     grep $my_uname /etc/passwd > /dev/null
     if [ $? -eq 1 ]; then
         echo "---  adding user $my_uname  --"
@@ -177,7 +213,6 @@ if [ "$my_uname" != "" ]; then
         addgroup $my_uname wheel
     fi
     echo
-
 
     echo "===  Considering restoration of /home/$my_uname  ==="
     if [ "$home_mine" != "" ]; then
@@ -195,36 +230,6 @@ if [ "$my_uname" != "" ]; then
 fi
 
 
-echo "===  Unpacking sshd host keys for: $this_host  (if found)  ==="
-sshd_host_keys=/mnt/specifics/${this_host}-sshd_host_keys.tgz
-if [ -f "$sshd_host_keys" ]; then
-    cd /etc/ssh
-    tar xvfz $sshd_host_keys
-fi
-echo
-
-
-if [ "$FS" = "AOK" ] && [ "$(ps axu|grep sshd|grep -v grep)" = "" ]; then
-    echo "===  Enabling sshd  ==="
-    enable_sshd
-    echo
-fi
-
-
-if [ "$FS" != "AOK" ]; then
-    if [ $activate_sshd_service -eq 1 ]; then
-        echo "===  Generating host keys if not restored, might take a while...  ==="
-        ssh-keygen -A
-        echo
-
-        echo "===  Setting up sshd as a service...  ==="
-        apk add openrc
-        rc-update add sshd
-        echo
-    fi
-fi
-
-
 if [ -x $extra_tasks ]; then
     echo "===  Running additional local restore tasks  ==="
     echo
@@ -235,6 +240,12 @@ else
     echo
 fi
 
+
+if [ "$my_uname" != "" ] && [ "$(grep $my_uname:\!: /etc/shadow)" != "" ]; then
+    echo
+    echo "You should probably set a password for your added user:"
+    echo "sudo passwd $my_uname"
+fi
 
 
 echo
