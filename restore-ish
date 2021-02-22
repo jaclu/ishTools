@@ -1,10 +1,13 @@
 #!/bin/sh
 #
-# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-21
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-23
 # License: MIT
-# Version: 0.2.7 2021-02-22
+# Version: 0.2.8 2021-02-23
+#                Fixed bug in timezone handling
+#                Check to prevent repeated sshd activation in AOK
+#          0.2.7 2021-02-22
 #                added apk shaddow - needed on FS ish for useradd
-#          0.2.6a 2021-02-22
+#          0.2.6 2021-02-22
 #                Now using useradd to create user
 #                Adding patch feature, so you dont need to retar
 #                home dirs for minor changes, until next tar use
@@ -140,7 +143,7 @@ if [ "$(date |grep CET)" = "" ]; then
     apk add tzdata
     cp /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
     rm /etc/timezone
-    echo "???Europe/Amsterdam" > /etc/timezone
+    echo "Europe/Amsterdam" > /etc/timezone
     # Not needed unless when you change tz, but I will leave it in for now...
     #apk del tzdata 
     echo
@@ -156,10 +159,13 @@ fi
 echo
 
 
-if [ $activate_sshd_service -eq 1 ] && [ "$(ps axu|grep sshd|grep -v grep)" = "" ]; then
+if [ $activate_sshd_service -eq 1 ]; then
+    echo "===  Making sure sshd will be running  ==="
     if [ "$FS" = "AOK" ]; then
-        echo "---  AOK enable_sshd  ---"
-        enable_sshd
+	if [ "$(2> /dev/null rc-status |grep sshd)" = "" ]; then
+            echo "---  AOK enable_sshd  ---"
+            enable_sshd
+	fi
     else
         apk add openrc
         #rc-update add sshd
