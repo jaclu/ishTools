@@ -2,7 +2,9 @@
 #
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-21
 # License: MIT
-# Version: 0.2.3 2021-02-22
+# Version: 0.2.4 2021-02-22
+#                Setting timezone to CET (Amsterdam)
+#          0.2.3 2021-02-22
 #                Setting shell to /bin/ash for $my_uname
 #          0.2.2 2021-02-21
 #                Added a lot of features, including sshd host keys if found.
@@ -80,17 +82,6 @@ fi
 echo
 
 
-if [ "$FS" = "AOK" ]; then
-    echo "===  Somme AOK tweaks, that are harmless   ==="
-    prof_dbg=/tmp/profile.debug
-    if [ -f $prof_dbg ]; then
-	echo "---  chmod 666 $prof_dbg  ---"
-	chmod 666 $prof_dbg
-    fi
-fi
-echo 
-
-
 echo "===  Copying some files to /etc  ==="
 # Add my local hosts
 cp /mnt/files/hosts /etc
@@ -116,6 +107,28 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo
+
+
+if [ "$FS" = "AOK" ]; then
+    echo "===  Somme AOK tweaks, that are reverible and non-destructive   ==="
+    prof_dbg=/tmp/profile.debug
+    if [ -f $prof_dbg ]; then
+	echo "---  chmod 666 $prof_dbg  ---"
+	chmod 666 $prof_dbg
+    fi
+fi
+echo
+
+
+if [ "$(date |grep CET)" = "" ]; then
+    echo "===  Setting timezone to CET (Amsterdam)  ==="
+    apk add tzdata
+    cp /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
+    rm /etc/timezone
+    echo "???Europe/Amsterdam" > /etc/timezone
+    apk del tzdata
+    echo
+fi
 
 
 echo "===  Installing my selection of software  ==="
@@ -189,6 +202,13 @@ if [ -f "$sshd_host_keys" ]; then
     tar xvfz $sshd_host_keys
 fi
 echo
+
+
+if [ "$FS" = "AOK" ] && [ "$(ps axu|grep sshd|grep -v grep)" = "" ]; then
+    echo "===  Enabling sshd  ==="
+    enable_sshd
+    echo
+fi
 
 
 if [ "$FS" != "AOK" ]; then
