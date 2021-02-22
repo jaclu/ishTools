@@ -2,7 +2,12 @@
 #
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-21
 # License: MIT
-# Version: 0.2.5 2021-02-22
+# Version: 0.2.6 2021-02-22
+#                Now using useradd to create user
+#                Adding patch feature, so you dont need to retar
+#                home dirs for minor changes, until next tar use
+#                the patch to correct the issue
+#          0.2.5 2021-02-22
 #                Setting up sshd as a boot time service on ish FS
 #                printing a reminder if the added user has no password
 #          0.2.4 2021-02-22
@@ -208,9 +213,9 @@ if [ "$my_uname" != "" ]; then
     grep $my_uname /etc/passwd > /dev/null
     if [ $? -eq 1 ]; then
         echo "---  adding user $my_uname  --"
-        adduser -s /bin/ash -D $my_uname
+        useradd -m -G wheel -s /bin/ash $my_uname
         # This adds no pw sudo
-        addgroup $my_uname wheel
+        #addgroup $my_uname wheel
     fi
     echo
 
@@ -227,6 +232,13 @@ if [ "$my_uname" != "" ]; then
         fi
     fi
     echo
+    
+    patch_file=/mnt/patches/task
+    if [ -r $patch_file ]; then
+	echo "===  found a patch file  ==="
+	$patch_file
+	echo
+    fi
 fi
 
 
