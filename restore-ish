@@ -2,7 +2,9 @@
 #
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-23
 # License: MIT
-# Version: 0.2.8 2021-02-23
+# Version: 0.2.9 2021-02-23
+#                Simplified TZ assignment
+#          0.2.8 2021-02-23
 #                Fixed bug in timezone handling
 #                Check to prevent repeated sshd activation in AOK
 #          0.2.7 2021-02-22
@@ -141,11 +143,13 @@ echo
 if [ "$(date |grep CET)" = "" ]; then
     echo "===  Setting timezone to CET (Amsterdam)  ==="
     apk add tzdata
-    cp /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
-    rm /etc/timezone
-    echo "Europe/Amsterdam" > /etc/timezone
-    # Not needed unless when you change tz, but I will leave it in for now...
-    #apk del tzdata 
+    if [ "$FS" = "AOK" ]; then
+    	cp /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
+    	2> /dev/null rm /etc/timezone
+
+    	# Not needed unless when you change tz, but I will leave it in for now...
+    	#apk del tzdata
+    fi 
     echo
 fi
 
