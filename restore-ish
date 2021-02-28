@@ -271,8 +271,12 @@ fi
 
 if [ "$my_uname" != "" ] && [ "$(grep $my_uname:\!: /etc/shadow)" != "" ]; then
     echo
-    echo "You should probably set a password for your added user:"
-    echo "sudo passwd $my_uname"
+    echo "+---------------------------------------------------------+"
+    echo "|                                                         |"
+    echo "| You should probably set a password for your added user: |"
+    echo "|   sudo passwd $my_uname                                 |"
+    echo "|                                                         |"
+    echo "+---------------------------------------------------------+"
 fi
 
 
