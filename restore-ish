@@ -1,31 +1,33 @@
 #!/bin/sh
 #
-# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-23
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-02-28
 # License: MIT
-# Version: 0.2.9 2021-02-23
+# Version: 0.2.10 2021-02-28
+#                Uninstalls fortune on AOK - not my thing :)
+#          0.2.9  2021-02-23
 #                Simplified TZ assignment
-#          0.2.8 2021-02-23
+#          0.2.8  2021-02-23
 #                Fixed bug in timezone handling
 #                Check to prevent repeated sshd activation in AOK
-#          0.2.7 2021-02-22
+#          0.2.7  2021-02-22
 #                added apk shaddow - needed on FS ish for useradd
-#          0.2.6 2021-02-22
+#          0.2.6  2021-02-22
 #                Now using useradd to create user
 #                Adding patch feature, so you dont need to retar
 #                home dirs for minor changes, until next tar use
 #                the patch to correct the issue
-#          0.2.5 2021-02-22
+#          0.2.5  2021-02-22
 #                Setting up sshd as a boot time service on ish FS
 #                printing a reminder if the added user has no password
-#          0.2.4 2021-02-22
+#          0.2.4  2021-02-22
 #                Setting timezone to CET (Amsterdam)
-#          0.2.3 2021-02-22
+#          0.2.3  2021-02-22
 #                Setting shell to /bin/ash for $my_uname
-#          0.2.2 2021-02-21
+#          0.2.2  2021-02-21
 #                Added a lot of features, including sshd host keys if found.
 #                Correctly identifies if the system is using AOK filesystem
 #                And adjusts procedure accordingly
-#          0.1.0 2021-01-31
+#          0.1.0  2021-01-31
 #                Initial release, I am using it and it seems to do its thing
 #
 #
@@ -131,6 +133,8 @@ if [ "$FS" = "AOK" ]; then
 	echo "---  chmod 666 $prof_dbg  ---"
 	chmod 666 $prof_dbg
     fi
+    # Just no....
+    apk del fortune fortune-doc
 fi
 echo
 
