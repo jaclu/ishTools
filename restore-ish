@@ -4,6 +4,8 @@
 # License: MIT
 # Version: 0.2.10 2021-02-28
 #                Uninstalls fortune on AOK - not my thing :)
+#                Made the reminder to set a password for the added user
+#                stand out more.
 #          0.2.9  2021-02-23
 #                Simplified TZ assignment
 #          0.2.8  2021-02-23
@@ -271,12 +273,13 @@ fi
 
 if [ "$my_uname" != "" ] && [ "$(grep $my_uname:\!: /etc/shadow)" != "" ]; then
     echo
-    echo "+---------------------------------------------------------+"
-    echo "|                                                         |"
-    echo "| You should probably set a password for your added user: |"
-    echo "|   sudo passwd $my_uname                                 |"
-    echo "|                                                         |"
-    echo "+---------------------------------------------------------+"
+    echo "+------------------------------+"
+    echo "|                              |"
+    echo "|  Remember to set a password  |"
+    echo "|  for your added user:        |"
+    echo "|    sudo passwd $my_uname     |"
+    echo "|                              |"
+    echo "+------------------------------+"
 fi
 
 
