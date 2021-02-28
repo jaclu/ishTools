@@ -277,7 +277,7 @@ if [ "$my_uname" != "" ] && [ "$(grep $my_uname:\!: /etc/shadow)" != "" ]; then
     echo "|                              |"
     echo "|  Remember to set a password  |"
     echo "|  for your added user:        |"
-    echo "|    sudo passwd $my_uname     |"
+    echo "|    sudo passwd $my_uname"
     echo "|                              |"
     echo "+------------------------------+"
 fi
