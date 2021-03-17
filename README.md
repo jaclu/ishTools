@@ -35,7 +35,7 @@ This is a hardcoded path. All other files you refer to in this file, so you can 
 
 ## Available tools
 ### bin/apk-leaves
-Displays all leave apk, ie apks that no other apks depend upon. In order to recreate a software deploy all you need to know are the leave nodes, install them and you will have replicated your env.
+Displays all leave apks, ie apks that no other apks depend upon. In order to recreate a software deploy all you need to know are the leave nodes. Install them and you will have replicated your env.
 
 Should be fully generic, uses ash shell so should work on a fresh deploy.
 Would probably run on any Alpine system, but I havent tried.
@@ -43,7 +43,7 @@ Would probably run on any Alpine system, but I havent tried.
 Run with -h param to see options.
 
 ### bin/restore-ish
-Restores an iSH env to include your prefered default state, mostly idempotent, so can be run repeatedly, for instance if you change a param, one of the tarballs it uses etc. Very convenient if you have multiple iSH devices to set them up to be in sync.
+Restores an iSH env to include your prefered default state, mostly idempotent, so can be run repeatedly. For instance if you change a param, one of the tarballs it uses etc. Very convenient if you have multiple iSH devices to set them up to be in sync.
 
 See the header of the file for latest changes.
 
@@ -59,21 +59,21 @@ Actions taken, deppending on your config:
   - If default FS 
     - an /etc/inittab without unused gettys
   - can replace /etc/hosts, so it can connect to any of your local devices by name if you dont have local DNS setup.
-  - can replace /etc/apk/repositories pointing to Alpine v3.12  
+  - can replace /etc/apk/repositories, defaul is to use Alpine v3.12  
 - Does apk update and apk upgrade for latest updates
-- sets time_zone
-- Can adds any apks you expect to be installed
+- can set time_zone
+- Can add any apks you expect to be installed
 - Can remove any apks you do not want to be installed
 - Can deploy ssh hostkeys if prepaed for this device.
   This is a huge timesaver if you ssh into it, since otherwise after each re-install your other machines will complain that the hostkeys have changed.
-- Can set up or disable sshd, will install what is needed for sshd to run, even if you do not indicate sshd to be activated, so that you can more conveniently activate it manually later.
+- Can ignore, set up or disable sshd, will install what is needed for sshd to run, even if you do not indicate sshd to be activated, so that you can more conveniently activate it manually later.
 - Creates a no password sudo group
-- If you have saved a root environ and requests it to be installed, will untar it into place
+- If you have defined a root environ and request it to be installed, will untar it into place
 - If you have defined a username, creates it, adds it to the no-password group
-- If you have saved a user environ and requests it to be installed, will untar it into place
+- If you have saved a user environ and request it to be installed, will untar it into place
 - If an extra task has been defined, run it. 
   I use this to be have my private configs outside of this repo. I have included a sample, to give you an idea.
-- If a user was created and no password is yet defined, prints a reminder to set that users password, since otherwise you will not be able to ssh into the box.q
+- If a user was created and no password is yet defined, prints a reminder to set that users password, since otherwise you will not be able to ssh into the box.
 
 ## Procedure to restore your environment
 I deploy this to iCloud, this way I can use it on any of my devices
@@ -87,7 +87,7 @@ My procedure on a pristine iSH system (as root)
   - default FS
     - For local access, just do su - {your username}
     - For ssh access, reboot iSH, since sshd wont be started until next boot.
-  - AOK FS, you are ready to go
+  - AOK FS
     - For local access just exit the current session and login as {username}
     - ssh can be enabled without rebooting, so you can imeditally ssh into the device.
 
