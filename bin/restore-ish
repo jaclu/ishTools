@@ -637,6 +637,7 @@ function task_restore_user() {
             else
                 if [ $task_display -eq 1 ]; then
                     msg_3 "Will be restored"
+                    echo "$my_home_dir_tgz"
                 else
                     msg_3 "Unpacking"
                     echo "$my_home_dir_tgz"
