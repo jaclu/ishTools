@@ -10,7 +10,7 @@
 # Set up a couple of getty's
 #
 # jaclu 2021-01-03
-# They serve no purpose on a iSH, since you dont have any virtual terminals.
+# They serve no purpose on an iSH, since you dont have any virtual terminals.
 # Just save some memory and limit the number of processes by disabling them...
 #
 #tty1::respawn:/sbin/getty 38400 tty1
