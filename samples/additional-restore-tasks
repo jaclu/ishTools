@@ -1,35 +1,35 @@
-#!/bin/sh
+#!/bin/sh. 
 
-if [ "$my_uname" == "" ]; then
-    echo
-    echo "ERROR: additonal-restore-tasks can not run without a my_uname set!"
-    echo
-    exit 1
-fi
+#
+# Verifies my_uname has been set.
+#
+#[ "$my_uname" == "" ] && error_msg "This additonal-restore-tasks can not run without a my_uname set!" 1
 
-
-ln -sf /home/${my_uname}/git_repos/mine/tmux_common /usr/local
-ln -sf /home/${my_uname}/git_repos/mine/shell_envs /usr/local
-ln -sf /home/${my_uname}/git_repos/others/bash-git-prompt /usr/local
-
-
-echo "===  Soft linking /usr/local/bin/path_modify.sh  ==="
-ln -sf /usr/local/shell_envs/scripts/path_modify.sh /usr/local/bin
-echo
+#msg_2 "Doing some soft-links"
+#
+#ln -sf /home/${my_uname}/git_repos/mine/tmux_common /usr/local
+#ln -sf /home/${my_uname}/git_repos/mine/shell_envs /usr/local
+#ln -sf /home/${my_uname}/git_repos/others/bash-git-prompt /usr/local
+#ln -sf /home/${my_uname}/git_repos/others/powerlevel10k /usr/local
 
 
-if [ "$my_uname" != "" ]; then
-    my_additional_stuff=/mnt/bin/additional-as-$my_uname
-    if [ -x $my_additional_stuff ]; then
-        echo "===  running: $my_additional_stuff  ==="
-        echo
-        /bin/su -c $my_additional_stuff - $my_uname
-        echo
-    else
-        if [ -f $my_additional_stuff ]; then
-            echo
-            echo "*** WARNING  $my_additional_stuff is not a runable script!"
-            echo
-        fi
-    fi
-fi
+#msg_2 "Making path_modify.sh available"
+#echo "/usr/local/bin/path_modify.sh"
+#ln -sf /usr/local/shell_envs/scripts/path_modify.sh /usr/local/bin
+#echo
+
+
+#
+# If hostname script is found
+#
+#my_additional_stuff=$DEPLOY_PATH/custom/additional-as-$my_uname
+#if ! test -f $my_additional_stuff ; then
+#	error_msg "Not found: $my_additional_stuff"
+#elif test -x $my_additional_stuff ; then
+#    msg_1 "Running user-based extra script"
+#    echo "Script: $my_additional_stuff"
+#    echo
+#    /bin/su -c $my_additional_stuff - $my_uname
+#else
+#    error_msg "$my_additional_stuff is not a runable script!"
+#fi

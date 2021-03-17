@@ -1,58 +1,31 @@
 #!/bin/sh
 #
-#
-# Release: X
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-03-07
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-03-17
 # License: MIT
-# Version: 0.3.0f 2021-03-07
-#                Major cleanup, moving some stuff, expanding the README.md
-#          0.2.11 2021-03-01
-#                Uninstalls fortune on AOK - not my thing :)
-#                Made the reminder to set a password for the added user
-#                stand out more.
-#          0.2.9  2021-02-23
-#                Simplified TZ assignment
-#          0.2.8  2021-02-23
-#                Fixed bug in timezone handling
-#                Check to prevent repeated sshd activation in AOK
-#          0.2.7  2021-02-22
-#                added apk shaddow - needed on FS ish for useradd
-#          0.2.6  2021-02-22
-#                Now using useradd to create user
-#                Adding patch feature, so you dont need to retar
-#                home dirs for minor changes, until next tar use
-#                the patch to correct the issue
-#          0.2.5  2021-02-22
-#                Setting up sshd as a boot time service on ish FS
-#                printing a reminder if the added user has no password
-#          0.2.4  2021-02-22
-#                Setting timezone to CET (Amsterdam)
-#          0.2.3  2021-02-22
-#                Setting shell to /bin/ash for $my_uname
-#          0.2.2  2021-02-21
-#                Added a lot of features, including sshd host keys if found.
-#                Correctly identifies if the system is using AOK filesystem
-#                And adjusts procedure accordingly
-#          0.1.0  2021-01-31
-#                Initial release, I am using it and it seems to do its thing
+# Version: 0.3.0 2021-03-17
+#                Major cleanup, making everything modular
+#                expanding the README.md
 #
+# Dependency: This shell scripts  expects a config file to be present at
+# ../custom/ishTols.cfg
+# There is a sample config file in ../samples/ishTols.cfg copy it into the
+# above location and modify it to match your preferences before running.
+#
+# When you run this all actions that will be done based on your config will
+# be displayed, and then this app holds for 5 seconds. You can
+# press Ctrl-C if you want to examine what will be done in more detail.
 #
 # This is a turn-key setup of a fresh iSH into a useable state
-# Even if you do not have any homedirs to restore, this can be used to set the
-# environment up to your likings, look at the settings bellow, anything
-# that you do now wan't to bother with, just comment that variable out.
+# Even if you do not have any homedirs to restore, this can be used to
+# set the general environment up to your likings look at the settings bellow,
+# anything that you do now wan't to bother with, 
+# just comment that  out.
 #
 # Works both on AppStore and TestFlight iSH
 # and both with default and AOK filesystems
+#
+# Most output lines are kept short, in order to as much as possible
+# display without linebreaks on the iPhone.
 #
 # Copy it outside the iSH filesystem in order for it to survive a
 # delete - install cycle. I use: mount -t ios . /mnt
@@ -63,445 +36,660 @@
 #
 
 
+
+#==========================================================
 #
-# Set this to empty if you dont want to set timezone
-# Content should be in tz database format, so typically
-# Continent/Major_City or a two/three letter acronymn like UTC
+#     Display functions
 #
-time_zone="Europe/Amsterdam"
+#==========================================================
+
+function error_msg() {
+    local msg=$1
+    local err_code=$2
+
+    printf "\nERROR: $msg\n\n"
+
+    if [ "$err_code" != "" ]; then
+        exit $err_code
+    fi
+}
 
 
 #
-# Set to 0 if you dont want to run sshd automatically at boot
+#  Progress messages
 #
-activate_sshd_service=1
+function msg_1() {
+    #
+    #   Display message centered inside a box
+    #
+    local msg=$1
+    local pad_length=42
+    local msg_length="${#msg}"
+    local msg_half_length="$((${#msg}/2))"
+    local pad="a"
+    local pad_str="b"
+
+    #
+    # if msg was odd chars long, add a space to ensure it can be correctly
+    # be split in half
+    #
+    if [ $msg_length -ne $(( msg_half_length * 2 )) ] ; then
+        msg="$msg "
+        msg_length="${#msg}"
+    fi
+
+    # if string is to long, dont use padding
+    if [ $msg_length -ge $pad_length ]; then
+        pad_str=""
+    else
+        pad="                                                             "
+        pad_str=${pad:0:$(( (pad_length-${#msg}) / 2))}
+    fi
+    echo
+    echo "+==========================================+"
+    echo "|                                          |"
+    echo "|$pad_str$msg$pad_str|"
+    echo "|                                          |"
+    echo "+==========================================+"
+    echo
+}
 
 
-#
-# Set theese if you want to restore /root
-#
-home_root=/mnt/files/tars/home_root.tgz
-# a radnom something, indicating this has already been deployed
-home_root_unpacked_ptr=/root/.local
+function msg_2() {
+    local msg=$1
+
+    echo "===  $msg  ==="
+}
 
 
-#
-# If empty no user env will be created
-#
-my_uname="jaclu"
-#my_shell="/bin/bash"
+function msg_3() {
+    local msg=$1
 
-#
-# Set this if you want to restore your homedir
-#
-my_home_dir=/mnt/files/tars/home_${my_uname}.tgz
-# a radnom something, indicating this has already been deployed
-my_home_dir_unpacked_ptr=/home/${my_uname}/.shell_envs_cfg
+    echo "---  $msg  ---"
+}
 
-
-#
-# Some stuff I don't want to put in githbub :)
-# set it to empty if you don't need it.
-#
-extra_tasks=/mnt/private/additional-restore-tasks
-
-
-#
-# If not set to 1 taks that will not be done, will not be listed
-# when task_display_config() displays what changess will be done.
-#
-display_non_tasks=1
-
-
-
-###########################################################
-#
-#     Enf of settings
-#
-###########################################################
-
-
-#
-# Identifying name of this device
-#
-this_host=$(hostname)
-
-#
-# Where to find ssh host keys
-#
-ssh_host_keys=/mnt/specifics/${this_host}-ssh_host_keys.tgz
 
 
 #==========================================================
 #
-#     Some general functions
+#     Path and param handling
+#
+#==========================================================
+
+function expand_path() {
+    #
+    #  Path not starting with / are asumed to be relative to
+    #  $DEPLOY_PATH
+    #
+    local this_path="$1"
+    local char_1=$(echo "$this_path" | head -c1)
+
+    if [ "$char_1" = "/" ]; then
+        expanded_path="$this_path"
+    else
+        expanded_path="$DEPLOY_PATH/$this_path"
+    fi
+}
+
+
+function expand_path_all_params() {
+    #
+    # Expands all path params that might be relative
+    # to the deploy location into a full path
+    #
+    if [ "$repositories_file" = "*** do not touch ***" ]; then
+        repositories_file=""
+    elif [ "$repositories_file" != "" ] ; then
+        #echo "### expanding: [$repositories_file]"
+        expand_path "$repositories_file"
+        repositories_file="$expanded_path"
+        #echo "    expanded into: [$repositories_file]"
+    else
+        # Use default Alpine repofile
+        repositories_file="$DEPLOY_PATH/files/repositories-Alpine-v3.12"
+    fi
+    if [ "$hosts_file" != "" ]; then
+        #echo "### expanding: [$hosts_file]"
+        expand_path "$hosts_file"
+        hosts_file="$expanded_path"
+        #echo "    expanded into: [$hosts_file]"
+    fi
+    if [ "$ssh_host_keys" != "" ]; then
+        #echo "### expanding: [$ssh_host_keys]"
+        expand_path "$ssh_host_keys"
+        ssh_host_keys="$expanded_path"
+        #echo "    expanded into: [$ssh_host_keys]"
+    fi
+    if [ "$my_home_dir_tgz" != "" ]; then
+        #echo "### expanding: [$my_home_dir_tgz]"
+        expand_path "$my_home_dir_tgz"
+        my_home_dir_tgz="$expanded_path"
+        #echo "    expanded into: [$my_home_dir_tgz]"
+    fi
+    if [ "$root_home_dir_tgz" != "" ]; then
+        #echo "### expanding: [$root_home_dir_tgz]"
+        expand_path "$root_home_dir_tgz"
+        root_home_dir_tgz="$expanded_path"
+        #echo "    expanded into: [$root_home_dir_tgz]"
+    fi
+    if [ "$extra_tasks" != "" ]; then
+        #echo "### expanding: [$extra_tasks]"
+        expand_path "$extra_tasks"
+        extra_tasks="$expanded_path"
+        #echo "    expanded into: [$extra_tasks]"
+    fi
+}
+
+
+function setup_environment() {
+    #
+    #   Identify the local env, and parse config file
+    #
+ 
+
+    this_host=$(hostname)
+    #
+    #  Identify fiilesystem, a lot of other operations depend on it, 
+    #  should be done early
+    #
+    echo
+    if test -d /AOK ; then
+        FileSystem='AOK'
+        msg_2 "This is an AOK file system"
+    else
+        FileSystem='iSH'
+        msg_2 "This is a regular iSH file system"
+    fi
+    #
+    # Find where this package is deployed, then use this for relative locations
+    #
+    DEPLOY_PATH="`dirname \"$0\"`/.."               # relative
+    DEPLOY_PATH="`( cd \"$DEPLOY_PATH\" && pwd )`"  # absolutized and normalized
+    test -d $DEPLOY_PATH || error_msg "could not identify DEPLOY_PATH!!" 1
+    #
+    # Config file
+    #
+    cfg_file=$DEPLOY_PATH/custom/ishTols.cfg
+    if [ "$cfg_file" != "" ] && test -f $cfg_file ; then
+        . "$cfg_file"
+    else
+        echo
+        echo "ERROR: No config file ($cfg_file) found, aborting"
+        echo
+        echo "You should find a template config file in the samples dir of this repo,"
+        echo "copy it to the above location, and tweak it to your preferences."
+        echo
+        exit 1
+    fi
+    # process path references in config file
+    expand_path_all_params
+    #
+    # Extra checks for numerical params
+    #
+    if [ "$display_non_tasks" = "" ] || [ "$display_non_tasks" -ne 1 ]; then
+        display_non_tasks=0
+    fi
+    
+    [ "$activate_sshd_service" = "" ] && activate_sshd_service=0
+    case "$activate_sshd_service" in
+        -1|0|1)
+            ;;
+        *)
+            error_msg "Invalid setting: activate_sshd_service=$activate_sshd_service\nValid options: -1 0 1" 1
+    esac
+
+    if [ "$purge_root" = "" ] || [ "$purge_root" -ne 1 ]; then
+        purge_root=0
+    fi
+    #
+    # Unset variables depending on others
+    #
+    if [ "$my_uname" = "" ]; then
+        my_home_dir_tgz=""
+    fi
+}
+
+
+
+#==========================================================
+#
+#     Some things called more than once from the tasks
 #
 #==========================================================
 
 function replace_default_fs_inittab() {
-    local cfg_file=/mnt/files/inittab-default-FS
-    
-    if [ "$FS" != "AOK" ]; then
-	# Get rid of unused getty's
-	if [ -f $cfg_file ]; then
-	    cp  $cfg_file /etc/inittab
-	    echo "---  using my /etc/inittab  ---"
-	fi
+    #
+    # The AOK inittab is more complex, and does not need to be modified
+    # to hack sshd to run at boot, so we do not touch it.
+    #
+    local inittab
+
+    if [ "$FileSystem" != "AOK" ]; then
+    msg_3 "/etc/inittab"
+        # Get rid of unused getty's
+        inittab=$DEPLOY_PATH/files/inittab-default-FS
+    echo "$inittab"
+    if [ ! $task_display -eq 1 ]; then
+            cp "$inittab" /etc/inittab
+    fi
     fi
 }
 
 
-function use_alpine_reopositories() {
-    local cfg_file=/mnt/files/repositories
-    
-    if [ "$FS" != "AOK" ]; then
-	# point to current Alpine repos
-	if [ -f $cfg_file ]; then
-	    cp $cfg_file /etc/apk
-	    echo "---  using my /etc/apk/repositories  ---"
-	fi
-    fi
+function ensure_user_shell_is_installed() {
+    if [ $task_display -eq 1 ]; then
+        test -x $user_shell ||  printf "*** WARNING: $user_shell not found\n*** Make sure it gets installed!\n"
+    else
+        test -x $user_shell || error_msg "INVALID SHELL: $user_shell" 1
+    fi   
 }
 
 
-function display_config() {
-    echo
-    echo "/======================================================\\"
-    echo "|                                                      |"
-    echo "|       Displaying what tasks will be performed        |"
-    echo "|                                                      |"
-    echo "\\======================================================/"
-    echo
-
-    if [ $activate_sshd_service -eq 1 ]; then
-	echo "sshd will be activated"
-    elif [ $display_non_tasks -eq 1 ]; then
-	echo "sshd will be disabled"
+function is_root_home_restored() {
+    if [ "$root_home_dir_unpacked_ptr" != "" ] && test -f $root_home_dir_unpacked_ptr ; then
+        msg_3 "Already restored"
+        echo "Found: $root_home_dir_unpacked_ptr"
+        do_root_home_restore=0
+    else
+        [ $task_display -eq 1 ] && msg_3 "Will be restored"
+        do_root_home_restore=1
     fi
-
-    if [ -f "$ssh_host_keys" ]; then
-	echo "Will unpack ssh host keys from: $ssh_host_keys"
-    elif [ $display_non_tasks -eq 1 ]; then
-	echo "Will NOT touch ssh host keys"
-    fi
-
-    if [ "$home_root" != "" ] && [ "$FS" != "AOK" ]; then
-        if [ "$home_root_unpacked_ptr" != "" ] && [ -r $home_root_unpacked_ptr ]; then
-	    echo "Seems like /root has been restored already"
-	else
-	    echo "/root will be restored"
-	fi
-    elif [ $display_non_tasks -eq 1 ]; then
-	echo "/root will NOT be restored"
-    fi  
-    
-    if [ "$time_zone" != "" ]; then
-	echo "timezone will be set to: $time_zone"
-    elif [ $display_non_tasks -eq 1 ]; then
-	echo "timezone will NOT be changed"
-    fi
-    
-    if [ "$my_uname" != "" ]; then
-	echo "User will be created if not pressent: $my_uname"
-	if [ "$my_shell" != "" ]; then
-	    echo "  using shell: $my_shell"
-	fi
-	if [ "$my_home_dir" != "" ]; then
-            if [ "$my_home_dir_unpacked_ptr" != "" ] && [ -r $my_home_dir_unpacked_ptr ]; then
-		echo "Seems like /home/$my_uname has been restored already"
-	    else
-		echo "/home/$my_uname will be restored"
-	    fi
-	elif [ $display_non_tasks -eq 1 ]; then
-	    echo "/home/$my_uname will NOT be restored"
-	fi
-    elif [ $display_non_tasks -eq 1 ]; then
-	echo "User will NOT be created"
-    fi
-
-    if [ "$extra_tasks" != "" ]; then
-	echo "Extra task to be run:"
-	echo "  $extra_tasks"
-    elif [ $display_non_tasks -eq 1 ]; then
-	echo "No extra task will be run"
-    fi
-
-    echo
-    echo "Press Ctrl-C if you want to have more time to observe the changes that will be done."
-    echo "Waiting 5 secs, in case you want to abort..."
-    echo
-    echo
-    sleep 5
-    echo "==>                    <=="
-    echo "==>   Restore begins   <=="
-    echo "==>                    <=="
-    echo
 }
 
 
 
 #==========================================================
 #
-#     Restore tasks
+#   Tasks, displays intended action or performs it,
+#   based on $task_display
+#     1     Display what will be done 
+#     0     Do action
+#
+#   All tasks are called twice via run_tasks()
+#   The first time task_display is 1, this is to show
+#   information about what actions will be taken, after
+#   wich there is a pause to allow the user to hit Ctrl-C
+#   If the summary needs to be examined more indepth.
+#   If there is no break, after the pause (currently 5s),
+#   task_display is set to 0, and all active tasks are once
+#   again called, this time with the asumption that the announced
+#   task will now be performed.
 #
 #==========================================================
 
 function task_aok_tweaks() {
     local prof_dbg=/tmp/profile.debug
 
-    if [ "$FS" = "AOK" ]; then
-	echo "===  Somme AOK tweaks   ==="
-	# If this file isnt globaly writeable, you will get errors if you login
-	# as somebody else...
-	if [ -f $prof_dbg ]; then
-	    echo "---  chmod 666 $prof_dbg  ---"
-	    chmod 666 $prof_dbg
-	fi
-	# Just no....
-	echo "---  uninstalling fortune  ---"
-	apk del fortune fortune-doc
-	echo
+    if [ "$FileSystem" = "AOK" ]; then
+        msg_2 "Some AOK tweaks"
+        # If this file isnt globaly writeable, you will get errors if you login
+        # as somebody else than the first one who logged in...
+        if [ "$prof_dbg" != "" ] && test -f $prof_dbg ; then
+            msg_3 "chmod 666 $prof_dbg"
+            chmod 666 "$prof_dbg"
+        fi
+    echo
     fi
 }
 
 
 function task_replace_some_etc_files() {
-    local cfg_file=/mnt/files/hosts
-
-    echo "===  Copying some files to /etc  ==="
+    msg_2 "Copying some files to /etc"
     # If the config file is not found, no action will be taken
-    
+
     # Add my local hosts
-    if [ -f $cfg_file ]; then
-	cp $cfg_file  /etc
-	echo "---  using my /etc/hosts  ---"
+    msg_txt="/etc/hosts"
+    if [ "$hosts_file" != "" ]; then
+        msg_3 "$msg_txt"
+        test -f $hosts_file || error_msg "hosts_file not found!\n$hosts_file" 1
+        echo "$hosts_file"
+        if [ ! $task_display -eq 1 ]; then
+            cp "$hosts_file"  /etc/hosts
+        fi
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_3 "$msg_txt"
+        echo "Will NOT be modified"
+    fi
+
+    msg_txt="/etc/apk/repositories"
+    if  [ "$repositories_file" != "" ]; then
+        msg_3 "$msg_txt"
+        test -f $repositories_file || error_msg "repositories_file not found!\n$repositories_file" 1
+        echo "$repositories_file"
+        if [ ! $task_display -eq 1 ]; then
+            cp "$repositories_file" /etc/apk/repositories
+        fi
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_3 "$msg_txt"
+        echo "Will NOT be modified"
     fi
     replace_default_fs_inittab
-    use_alpine_reopositories
     echo
 }
 
 
 function task_update_upgrade() {
-    echo "===  update & upgrade  ==="
-    apk update && apk upgrade
-    if [ $? -ne 0 ]; then
-	echo
-	echo "ERROR: Failed to update repos - network issue?"
-	echo
-	exit 1
+    msg_2 "update & upgrade"
+    if [ $task_display -eq 1 ]; then
+        msg_3 "Will happen"
+    else
+        apk update && apk upgrade
+        [ $? -ne 0 ] && error_msg "Failed to update repos - network issue?" 1
     fi
     echo
 }
 
 
 function task_install_my_software() {
-    echo "===  Installing my selection of software  ==="
-    apk add coreutils openssh shadow sudo tmux mosh bash zsh git rsync emacs-nox joe
-    echo
-}
+    local msg_txt="Removing unwanted software"
 
+    if [ "$sw_removed" != "" ]; then
+        msg_2 "$msg_txt"
+        if [ $task_display -eq 1 ]; then
+            echo "$sw_removed"
+        else
+            apk del $sw_removed
+        fi
+        echo
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_2 "$msg_txt"
+        echo "Will NOT remove any listed software"
+        echo
+    fi
 
-function task_timezone() {
-    local tz_file=/usr/share/zoneinfo/$time_zone
-
-    if [ "$time_zone" != "" ]; then
-	echo "===  Setting timezone to $time_zone  ==="
-	apk add tzdata 
-	if [ -f "$tz_file" ]; then
-	    cp  $tz_file /etc/localtime
-	    # remove obsolete file
-	    2> /dev/null rm /etc/timezone
-	    echo "---  displaying time using: $time_zone  ---"
-	    date
-	else
-	    echo
-	    echo "***  BAD TIMEZONE: $time_zone  ***"
-	    echo
-	fi
-	echo
+    msg_txt="Installing my selection of software"
+    if [ "$sw_installed" != "" ]; then
+        msg_2 "$msg_txt"
+        if [ $task_display -eq 1 ]; then
+            echo "$sw_installed"
+        else
+            apk add $sw_installed
+        fi
+        echo
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_2 "$msg_txt"
+        echo "Will NOT install any listed software"
+        echo
     fi
 }
 
 
-function task_restore_ssh_host_keys() {
-    echo "===  Using ssh host keys for: $this_host  ==="
-    if [ -f "$ssh_host_keys" ]; then
-	apk add openssh-client
-	cd /etc/ssh
-	2>/dev/null rm /etc/ssh/ssh_host_*
-	tar xvfz $ssh_host_keys
-    else
-	echo
-	echo "***  NOT FOUND: $ssh_host_keys"
-	echo
+function task_timezone() {
+    local msg_txt="Setting timezone"
+    local tz_file=/usr/share/zoneinfo/$time_zone
+
+    if [ "$time_zone" != "" ]; then
+        msg_2 "$msg_txt"
+        echo "$time_zone"
+        if [ ! $task_display -eq 1 ]; then
+            test -f /usr/sbin/zic || apk add tzdata
+            if [ "$tz_file" != "" ] && test -f $tz_file ; then
+                cp "$tz_file" /etc/localtime
+                # remove obsolete file
+                2> /dev/null rm /etc/timezone
+                msg_3 "displaying time"
+                date
+            else
+                error_msg "BAD TIMEZONE: $time_zone  ***" 1
+            fi
+        fi
+        echo
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_2 "$msg_txt"
+        echo "Timezone ill NOT be changed"
+        echo
+    fi
+}
+
+
+function task_ssh_host_keys() {
+    #
+    #  Even if you don't intend to activate sshd initially
+    #  it still makes sende to deploy any saved ssh host keys
+    #  A) they are there if you need them
+    #  B) you dont have to wait for host keys to be generated
+    #     when and if you want to run sshd
+    #
+    local msg_txt="Device specific ssh host keys"
+
+    if [ "$ssh_host_keys" != "" ]; then
+        msg_2 "$msg_txt"
+        if test -f $ssh_host_keys ; then
+            msg_3 "Will be untared into /etc/ssh"
+            echo "$ssh_host_keys"
+            if [ ! $task_display -eq 1 ]; then
+                test -d /etc/ssh || apk add openssh-client
+                cd /etc/ssh
+                2>/dev/null rm /etc/ssh/ssh_host_*
+                tar xvfz "$ssh_host_keys"
+            fi
+        else
+            msg_3 "Not found"
+            echo "$ssh_host_keys"
+        fi
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_2 "$msg_txt"
+        echo "Will NOT be used"
     fi
     echo
 }
 
 
 function task_sshd() {
-    if [ $activate_sshd_service -eq 1 ]; then
-	echo "===  Making sure sshd will be running  ==="
-	if [ "$FS" = "AOK" ]; then
-	    if [ "$(2> /dev/null rc-status |grep sshd)" = "" ]; then
-		echo "---  AOK enable_sshd  ---"
-		enable_sshd
-	    fi
-	else
-            apk add openssh-server openrc
-            #rc-update add sshd
-	    
-            echo "---  Generating host keys if not restored, might take a while...  ---"
-            ssh-keygen -A
-            echo
-	    
-            echo "---  hacking sshd as a boot time service  ---"
-            if [ "$(grep -i 'port 1022' /etc/ssh/sshd_config)" = "" ]; then
-		echo "---  adding port 1022 to /etc/ssh/sshd_config  ---"
-  		echo "Port 1022" >> /etc/ssh/sshd_config
+    local msg_txt="sshd service"
+    case "$activate_sshd_service" in
+        -1 ) # disable
+            msg_2 "$msg_txt"
+            msg_3 "will be disabled"
+            if [ ! $task_display -eq 1 ]; then
+                if [ "$FileSystem" = "AOK" ]; then
+                    if [ "$(2> /dev/null rc-status |grep sshd)" != "" ]; then
+                        msg_3 "AOK disable_sshd"
+                        disable_sshd
+                    else
+                        echo "no action needed"
+                    fi
+                else
+                    if [ "$(grep sshd /etc/inittab)" != "" ]; then
+                        msg_3 "default FS disable sshd"
+                        2> /dev/null killall sshd
+                        replace_default_fs_inittab
+                    else
+                        echo "no action needed"
+                    fi
+                fi
             fi
-            if [ "$(grep sshd /etc/inittab)" = "" ]; then
-		echo "---  adding sshd restart to /etc/inittab  ---"
-		echo "::sysinit:/etc/init.d/sshd restart" >> /etc/inittab
+            ;;
+        0 )  # unchanged
+            if [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+                msg_2 "$msg_txt"
+                echo "Will NOT be changed"
             fi
-	    echo "==>                                  <=="
-            echo "==>  sshd will start on next reboot  <=="
-	    echo "==>                                  <=="
-            echo
-	fi
-    else
-	echo "===  Disabling sshd  ==="
-	if [ "$FS" = "AOK" ] && [ "$(2> /dev/null rc-status |grep sshd)" != "" ]; then
-            echo "---  AOK disable_sshd  ---"
-            disable_sshd
-	else
-            if [ "$(grep sshd /etc/inittab)" != "" ]; then
-		echo "---  default FS disable sshd  ---"
-		apk del openssh-server openssh-sftp-server
-		replace_default_fs_inittab
-		killall sshd
-	    fi
-	    
-	fi
-    fi
-    echo  
+
+            ;;
+        1 )  # activate 
+            msg_2 "$msg_txt"
+            msg_3 "Will be enabled"
+            if [ ! $task_display -eq 1 ]; then
+                if [ "$FileSystem" = "AOK" ]; then
+                    if [ "$(2> /dev/null rc-status |grep sshd)" = "" ]; then
+                        msg_3 "AOK enable_sshd"
+                        enable_sshd
+                    else
+                        echo "no action needed"
+                    fi
+                else
+                    apk add openssh-server openrc
+                    #rc-update add sshd
+
+                    msg_3 "Generating host keys if not present"
+                    echo "might take a while..."
+                    ssh-keygen -A
+                    echo
+
+                    if [ "$(grep -i 'port 1022' /etc/ssh/sshd_config)" = "" ]; then
+                        msg_3 "adding port 1022 to /etc/ssh/sshd_config"
+                        echo "Port 1022" >> /etc/ssh/sshd_config
+                    fi
+                    if [ "$(grep sshd /etc/inittab)" = "" ]; then
+                        msg_3 "adding sshd restart to /etc/inittab"
+                        echo "::sysinit:/etc/init.d/sshd restart" >> /etc/inittab
+                    fi
+                    msg_1 "sshd will start on next reboot"
+                fi
+            fi
+            ;;
+        *)
+            error_msg "Invalid setting: activate_sshd_service=$activate_sshd_service\nValid options: -1 0 1" 1
+    esac
+    echo
 }
 
 
 function task_nopasswd_sudo() {
-    echo "===  Ensure no-pw sudo for group wheel is active  ==="
-    grep restore-ish /etc/sudoers > /dev/null
-    if [ $? -eq 1 ]; then
-	echo "---  adding %wheel NOPASSWD to /etc/sudoers  --"
-	echo "%wheel ALL=(ALL) NOPASSWD: ALL # added by restore-ish" >> /etc/sudoers
+    msg_2 "no-pw sudo for group wheel"
+    echo "will be set if not done already"
+    if [ ! $task_display -eq 1 ]; then
+        test -f /usr/sbin/visudo || apk add sudo
+        grep restore-ish /etc/sudoers > /dev/null
+        if [ $? -eq 1 ]; then
+            msg_3 "adding %wheel NOPASSWD to /etc/sudoers"
+            echo "%wheel ALL=(ALL) NOPASSWD: ALL # added by restore-ish" >> /etc/sudoers
+        else
+            msg_3 "pressent"
+        fi
     fi
     echo
 }
 
 
 function task_restore_root_home() {
-    if [ "$FS" != "AOK" ]; then
-	echo "===  Considering restoration of /root  ==="
-	if [ "$home_root" != "" ]; then
-            if [ "$home_root_unpacked_ptr" != "" ] && [ -r $home_root_unpacked_ptr ]; then
-		echo "---  Seems like /root has been restored already  ---"
+    local msg_txt="Restoration of /root"
+
+    if [ "$root_home_dir_tgz" != "" ]; then
+        msg_2 "$msg_txt"
+        if ! test -f $root_home_dir_tgz ; then
+            error_msg "Not found:\n$root_home_dir_tgz" 1
+        else
+            # [ $task_display -eq 1 ] || msg_3 "Found a tarball"
+            if [ $purge_root -eq 1 ]; then
+                if [ $task_display -eq 1 ]; then
+                    msg_3 "Will empty previous content"
+                else
+                    msg_3 "Removing all previous content"
+                    rm /root -rf
+                fi
             else
-		if [ -f "$home_root" ]; then
-                    echo "---  Found a tarball, unpacking it  ---"
-                    cd /
-                    tar xfz $home_root
-		fi
+                is_root_home_restored
             fi
-	fi
-	echo
+            if [ ! $task_display -eq 1 ]; then
+                if [ $do_root_home_restore -eq 1 ]; then
+                    msg_3 "Unpacking"
+                    echo "$root_home_dir_tgz"
+                    cd /
+                    tar xfz "$root_home_dir_tgz"
+                    msg_3 "/root restored"
+                fi
+            fi
+        fi
+        echo
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_2 "$msg_txt"
+        echo "Will NOT restore any content"
+        echo
     fi
 }
-
 
 function task_restore_user() {
+    local msg_txt="Username: $my_uname"
     local user_shell=${my_shell:-/bin/ash}
-    
+
     if [ "$my_uname" != "" ]; then
-	echo "===  Restore user $my_uname  ==="
-	grep $my_uname /etc/passwd > /dev/null
-	if [ $? -eq 1 ]; then
-            echo "---  adding user $my_uname  ---"
-	    echo "---  shell: $user_shell  ---"
-	    if [ ! -x $user_shell ]; then
-		echo
-		echo "***  INVALID SHELL: $user_shell"
-		echo
-		exit 1
-	    fi
-            useradd -m -G wheel -s $user_shell $my_uname
-	else
-	    echo "---  user $my_uname already pressent ---"
-	fi
-	echo
-	
-	if [ "$my_home_dir" != "" ]; then
-	    echo "===  Considering restoration of /home/$my_uname  ==="
-            if [ "$my_home_dir_unpacked_ptr" != "" ] && [ -r $my_home_dir_unpacked_ptr ]; then
-		echo "---  Seems like /home/$my_uname was already restored  ---"
-            else
-		if [ -f "$my_home_dir" ]; then
-                    echo "---  Found a tarball, unpacking it  ---"
-                    cd /home
-                    tar xfz $my_home_dir
-		else
-		    echo
-		    echo "***  my_home_dir not found ($my_home_dir) not found!  ***"
-		    echo
-		fi
+        msg_2 "$msg_txt"
+        grep $my_uname /etc/passwd > /dev/null
+        if [ $? -eq 1 ]; then
+            msg_3 "Will be created"
+            msg_3 "shell: $user_shell"
+            ensure_user_shell_is_installed
+            # ensure shadow and hence adduser is installed
+            if [ ! $task_display -eq 1 ]; then
+                if ! test $(which useradd) ; then
+                    msg_3 "Adding shadow (provides useradd)"
+                    apk add shadow
+                fi
+                useradd -G wheel -m -s $user_shell $my_uname
             fi
-	    echo
-	fi
-    fi
-}
+        else
+            msg_3 "Already pressent"
+            ensure_user_shell_is_installed
+        fi
+        echo
 
+        msg_txt="Restoration of /home/$my_uname"
+        if [ "$my_home_dir_tgz" != "" ]; then
+            msg_2 "$msg_txt"
 
-function task_do_patching() {    
-    local patch_file=/mnt/patches/task
-    
-    if [ -r $patch_file ]; then
-	echo "===  found a patch file  ==="
-	$patch_file
-	echo
+            test -f $my_home_dir_tgz || error_msg "Not found: $my_home_dir_tgz" 1
+            #[ $task_display -eq 1 ] || msg_3 "Found a tarball"
+            if [ "$my_home_dir_unpacked_ptr" != "" ] && test -f $my_home_dir_unpacked_ptr ; then
+                msg_3 "Already restored"
+                echo "Found: $my_home_dir_unpacked_ptr"
+            else
+                if [ $task_display -eq 1 ]; then
+                    msg_3 "Will be restored"
+                else
+                    msg_3 "Unpacking"
+                    echo "$my_home_dir_tgz"
+                    cd /home
+                    tar xfz "$my_home_dir_tgz"
+                    msg_3 "/home/$my_uname restored"
+                fi
+            fi
+            echo
+        elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+            msg_2 "$msg_txt"
+            echo "Will NOT be done"
+        fi
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_2 "Will NOT create any user"
+        echo
     fi
 }
 
 
 function task_do_extra_tasks() {
+    local msg_txt="Running additional local restore tasks"
+
     if [ "$extra_tasks" != "" ]; then
-	if [ -x $extra_tasks ]; then
-	    echo "===  Running additional local restore tasks  ==="
-	    echo
-	    . $extra_tasks
-	else
-	    echo
-	    echo "***  extra_tasks ($extra_tasks) not executable  ***"
-	    echo
-	fi
-	
-    else
-	echo "===  No extra tasks requested  ==="
+        if [ $task_display -eq 1 ]; then
+            msg_2 "$msg_txt"
+        else
+            msg_1 "$msg_txt"
+        fi
+        echo "Script: $extra_tasks"
+        test -f $extra_tasks || error_msg "script not found" 1
+        test -x $extra_tasks || error_msg "script not executable" 1
+        echo
+        [ $task_display -eq 1 ] || . "$extra_tasks"
+    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        msg_2 "NO extra tasks will be run"
     fi
     echo
 }
 
 
 function task_user_pw_reminder() {
+    [ $task_display -eq 1 ] && return
 
     if [ "$my_uname" != "" ] && [ "$(grep $my_uname:\!: /etc/shadow)" != "" ]; then
-	echo
-	echo "+------------------------------+"
-	echo "|                              |"
-	echo "|  Remember to set a password  |"
-	echo "|  for your added user:        |"
-	echo "|    sudo passwd $my_uname"
-	echo "|                              |"
-	echo "+------------------------------+"
+        echo "+------------------------------+"
+        echo "|                              |"
+        echo "|  Remember to set a password  |"
+        echo "|  for your added user:        |"
+        echo "|    sudo passwd $my_uname"
+        echo "|                              |"
+        echo "+------------------------------+"
+        echo
     fi
 }
 
@@ -513,39 +701,59 @@ function task_user_pw_reminder() {
 #
 #==========================================================
 
-# 
-#  Identify fiilesystem, a lot of other tassks depend on it,
-# so should always
 #
-if [ -d /AOK ]; then
-    FS='AOK'
-    echo "Assuming this is an AOK file system"
-else
-    FS='iSH'
-    echo "Assuming this is a regular iSH file system"
-fi
+# If task_display=1 then what will be done is displayed
+# otherwise the tasks are performed
+#
+function run_tasks() {
+    #
+    # For testing/debugging any of the tasks can be commented out
+    # It is probably not a good idea to reshuffle their order too much
+    # some of them depend on previous tasks
+    #
+
+    task_aok_tweaks
+    task_replace_some_etc_files
+    task_update_upgrade
+    task_install_my_software
+    task_timezone
+    task_ssh_host_keys
+    task_sshd
+    task_nopasswd_sudo
+    task_restore_root_home
+    task_restore_user
+    task_do_extra_tasks
+    task_user_pw_reminder
+}
+
+wait_after_summary=5
+
+
+setup_environment
+
+
+#
+# Display all tasks
+#
+task_display=1
 echo
-
-# Should not be disabled normally
-display_config
-
-#
-# For testing/debugging any of theese tasks can be commented out
-# without any side effects
-#
-task_aok_tweaks
-task_replace_some_etc_files
-task_update_upgrade
-task_install_my_software
-task_timezone
-task_restore_ssh_host_keys
-task_sshd
-task_nopasswd_sudo
-task_restore_root_home
-task_restore_user
-task_do_patching
-task_do_extra_tasks
-task_user_pw_reminder
-
+msg_1 "Displaying what tasks will be performed"
+run_tasks
 echo
-echo "All done, system is restored!"
+echo "Press Ctrl-C if you want to have more time"
+echo "to observe the changes that will be done."
+echo
+echo "Waiting $wait_after_summary secs, in case you want to abort..."
+echo
+sleep $wait_after_summary
+
+
+#
+# Do all tasks
+#
+task_display=0
+msg_1 "Restore begins"
+run_tasks
+
+
+msg_2 "All done, system restored!"
