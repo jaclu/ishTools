@@ -9,12 +9,12 @@ function msg_2() {
     echo "===  $msg  ==="
 }
 
+
 function msg_3() {
     local msg=$1
 
     echo "---  $msg  ---"
 }
-
 
 
 msg_2 "Deploying helpfull_scripts"
@@ -30,7 +30,7 @@ echo
 
 
 msg_2 "Deploying helpfull_scripts again"
-msG_3 "they might have been updated"
+msg_3 "they might have been updated"
 cd ~/git_repos/mine/helpfull_scripts
 ./deploy system
 echo
