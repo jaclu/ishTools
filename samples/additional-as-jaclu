@@ -22,6 +22,7 @@ cd ~/git_repos/mine/helpfull_scripts
 ./deploy system
 echo
 
+
 # First just get he basics so helpful_scritpts are updated
 msg_2 "running common_pull.sh"
 ~/.local/bin/common_pull.sh
