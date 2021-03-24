@@ -380,7 +380,7 @@ function task_update_upgrade() {
 }
 
 
-function task_install_my_software() {
+function task_remove_software() {
     local msg_txt="Removing unwanted software"
 
     if [ "$sw_removed" != "" ]; then
@@ -396,7 +396,10 @@ function task_install_my_software() {
         echo "Will NOT remove any listed software"
         echo
     fi
+}
 
+
+function task_install_my_software() {
     msg_txt="Installing my selection of software"
     if [ "$sw_installed" != "" ]; then
         msg_2 "$msg_txt"
@@ -715,6 +718,11 @@ function run_tasks() {
 
     task_aok_tweaks
     task_replace_some_etc_files
+
+    # do before update & upgrade to prevent risk of first updating item
+    # only to then remove it
+    task_remove_software
+
     task_update_upgrade
     task_install_my_software
     task_timezone
