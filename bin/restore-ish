@@ -1,8 +1,11 @@
 #!/bin/sh
 #
-# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-03-17
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-03-26
 # License: MIT
-# Version: 0.3.0 2021-03-17
+# Version: 0.3.1 2021-03-26
+#                Creates user with uid/gid 501 in order to make
+#                iOS mounts writable
+#          0.3.0 2021-03-17
 #                Major cleanup, making everything modular
 #                expanding the README.md
 #
@@ -620,7 +623,12 @@ function task_restore_user() {
                     msg_3 "Adding shadow (provides useradd)"
                     apk add shadow
                 fi
-                useradd -G wheel -m -s $user_shell $my_uname
+		# we need to ensure the group exists, before using it in useradd
+		# TODO: identidy a 501 group by name and delete it
+		groupdel -g $my_uname 2> /dev/null
+		groupadd -g 501 $my_uname 
+		# sets uid & gid to 501, to match apples uid/gid on iOS mounts
+                useradd -u 501 -g 501 -G wheel -m -s $user_shell $my_uname
             fi
         else
             msg_3 "Already pressent"
