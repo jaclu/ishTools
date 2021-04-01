@@ -374,11 +374,11 @@ function task_replace_some_etc_files() {
 
 
 function task_update() {
-    msg_2 "update apk index"
+    msg_2 "update & fix apk index"
     if [ $task_display -eq 1 ]; then
         msg_3 "Will happen"
     else
-        apk update
+        apk update && apk fix
         [ $? -ne 0 ] && error_msg "Failed to update repos - network issue?" 1
     fi
     echo
