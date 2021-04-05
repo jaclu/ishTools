@@ -1,8 +1,11 @@
 #!/bin/sh
 #
-# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-03-29
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-05
 # License: MIT
-# Version: 0.3.2 2021-03-29
+# Version: 0.3.3 2021-04-05
+#                Added error check for task_install_my_software
+#                if apk add fails
+#          0.3.2 2021-03-29
 #                Split update & upgrade and put remove in-between
 #          0.3.1 2021-03-26
 #                Creates user with uid/gid 501 in order to make
@@ -424,7 +427,7 @@ function task_install_my_software() {
             echo "$sw_installed"
         else
             apk add $sw_installed
-        fi
+            [ $? -ne 0 ] && error_msg "Failed to install requested software - network issue?" 1
         echo
     elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_2 "$msg_txt"
