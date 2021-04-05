@@ -428,6 +428,7 @@ function task_install_my_software() {
         else
             apk add $sw_installed
             [ $? -ne 0 ] && error_msg "Failed to install requested software - network issue?" 1
+	fi
         echo
     elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_2 "$msg_txt"
