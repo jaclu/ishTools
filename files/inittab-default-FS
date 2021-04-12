@@ -1,13 +1,9 @@
 # /etc/inittab
 
-# In this one, I have removed all the tty getty processes
-# since you dont have virtual screens anyhow in iSH as of yet.
-
-::sysinit:/sbin/openrc sysinit
+::sysinit:/sbin/openrc
 ::sysinit:/sbin/openrc boot
 ::wait:/sbin/openrc default
 
-# Set up a couple of getty's
 #
 # jaclu 2021-01-03
 # They serve no purpose on an iSH, since you dont have any virtual terminals.

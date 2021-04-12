@@ -15,17 +15,6 @@
 
 
 #
-#   Set up some common softlinks
-#
-msg_2 "Creating common soft-links"
-ln -sf /home/${my_uname}/git_repos/mine/tmux_common /usr/local
-ln -sf /home/${my_uname}/git_repos/mine/shell_envs /usr/local
-ln -sf /home/${my_uname}/git_repos/others/bash-git-prompt /usr/local
-ln -sf /home/${my_uname}/git_repos/others/powerlevel10k /usr/local
-echo
-
-
-#
 #   Adding some stuff to /usr/local/bin
 #
 msg_2 "Adding to /usr/local/bin"
@@ -35,16 +24,16 @@ echo
 
 
 #
-#   Run $my_uname script, if found
+#   Run some inits as  $my_uname 
 #
 my_additional_stuff=$DEPLOY_PATH/custom/additional-as-$my_uname
-if ! test -f $my_additional_stuff ; then
-    error_msg "Not found: $my_additional_stuff"
-elif test -x $my_additional_stuff ; then
-    msg_1 "Running user-based extra script"
-    msg_2 "$my_additional_stuff"
-    echo
-    /bin/su -c $my_additional_stuff - $my_uname
-else
-    error_msg "$my_additional_stuff is not a runable script!"
+if test -f $my_additional_stuff ; then
+    if test -x $my_additional_stuff ; then
+	msg_1 "Running user-based extra script"
+    	msg_2 "$my_additional_stuff"
+    	echo
+    	/bin/su -c $my_additional_stuff - $my_uname
+    else
+    	error_msg "$my_additional_stuff is not a runable script!" 1
+    fi
 fi

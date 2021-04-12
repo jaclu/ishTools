@@ -6,37 +6,17 @@
 function msg_2() {
     local msg=$1
 
-    echo "===  $msg  ==="
+    echo "=== $msg ==="
 }
-
 
 function msg_3() {
     local msg=$1
 
-    echo "---  $msg  ---"
+    echo "--- $msg ---"
 }
 
 
-msg_2 "Deploying helpfull_scripts"
-cd ~/git_repos/mine/helpfull_scripts
-./deploy system
-echo
-
-
-# First just get he basics so helpful_scritpts are updated
-msg_2 "running common_pull.sh"
-~/.local/bin/common_pull.sh
-echo
-
-
-msg_2 "Deploying helpfull_scripts again"
-msg_3 "they might have been updated"
-cd ~/git_repos/mine/helpfull_scripts
-./deploy system
-echo
-
-
-# Update all git environs
-msg_2 "running common_pull.sh all"
-~/.local/bin/common_pull.sh all
+msg_2 "Softlinking ~/cloud"
+cd ~/
+ln -sf /iCloud/cloud
 echo
