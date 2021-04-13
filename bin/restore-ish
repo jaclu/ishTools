@@ -903,10 +903,27 @@ function run_tasks() {
 }
 
 
+#
+#  Debug tasks, set condition as 
+#    0 = 1 for normal operation
+#    1 = 1 to run the test
+#
+if [ 0 = 1 ]; then
+    # Testing specific task(-s)
+    # only those listed below will be run
+    function run_tasks() {
+	task_sshd
+    }
+    # no need to wait if you are testing tasks...
+    wait_after_summary=0
+else
+    # Normal operation
+    wait_after_summary=5
+fi
+
 
 setup_environment
 
-wait_after_summary=5
 #
 # Display all tasks
 #
@@ -921,7 +938,6 @@ echo
 echo "Waiting $wait_after_summary secs, in case you want to abort..."
 echo
 sleep $wait_after_summary
-
 
 #
 # Do all tasks
