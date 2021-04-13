@@ -901,9 +901,7 @@ function run_tasks() {
     task_do_extra_tasks
     task_user_pw_reminder
 }
-function run_tasks() {
-    task_sshd
-}
+
 
 
 setup_environment
