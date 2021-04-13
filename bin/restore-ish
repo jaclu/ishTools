@@ -3,7 +3,9 @@
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
 # License: MIT
 #
-# Version: 0.3.5 2021-04-13
+# Version: 0.3.6 2021-04-13
+# 		 Ouch fixed embarrasing typo in task_sshd when sshd is disabled
+#          0.3.5 2021-04-13
 #                Refactored task_restore_root_home & task_restore_user
 #                to use a common function for restoring home_dir and
 #                extracting tarballs into a tmpdir, so that if extract fails
@@ -694,7 +696,7 @@ function task_sshd() {
             msg_3 "will be disabled"
             if [ ! $task_display -eq 1 ]; then			
                 if [ "$(2> /dev/null rc-status |grep sshd)" != "" ]; then
-OA		    openrc default
+    		    openrc default
 		    rc-service sshd stop
         	    rc-update del sshd
 		    msg_3 "was disabled"
