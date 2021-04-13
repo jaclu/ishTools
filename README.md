@@ -86,11 +86,12 @@ My procedure on a pristine iSH system (as root)
 - Usage once restore-ish is completed.
   - default FS
     - For local access, just do su - {your username}
-    - For ssh access, reboot iSH, since sshd wont be started until next boot.
   - AOK FS
-    - For local access just exit the current session and login as {username}
+    - For local access just exit the current session and login as {username} with or without password
     - ssh can be enabled without rebooting, so you can imeditally ssh into the device.
-
+  - Common for both
+    - For ssh access, asuming you have activated sshd, as soon as a password is set for any account you can ssh into it.
+    
 ### sshd related things to be aware of
 
 Remember that even if you login using pubkeys, you still need to define a password, since by default sshd does not allow logins to passwordless accounts.
