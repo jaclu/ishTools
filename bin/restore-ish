@@ -906,7 +906,7 @@ function run_tasks() {
 
 setup_environment
 
-wait_after_summary=0
+wait_after_summary=5
 #
 # Display all tasks
 #
