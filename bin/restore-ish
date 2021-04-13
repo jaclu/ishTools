@@ -3,7 +3,10 @@
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
 # License: MIT
 #
-# Version: 0.3.6 2021-04-13
+# Version: 0.3.7 2021-04-13
+#                Second oops in the same day, unintentional removal of a space in
+#		 patch_rc_cgroup_sh() that caused the patch to fail
+#          0.3.6 2021-04-13
 # 		 Ouch fixed embarrasing typo in task_sshd when sshd is disabled
 #          0.3.5 2021-04-13
 #                Refactored task_restore_root_home & task_restore_user
@@ -361,6 +364,14 @@ function patch_rc_cgroup_sh() {
 	    ;;
         *)
 	    msg_3 "Patch beeing applied"
+	    if [ -f "$fn_backup" ]; then
+		echo "Found: $fn_backup"
+		echo "Seems like patch was already applied"
+		echo "First try:  mv $fn_backup $fname"
+		echo "And then run this again, after that double check $fname"
+		echo "To make sure cgroup2_find_path() returns 0"
+		error_msg "Found $fn_backup read the above for further suggestions" 1		
+	    fi
 	    echo "Making function cgroup2_find_path() always return 0"
 	    echo "Saving original file to $fn_backup"
 	    cp $fname $fn_backup
@@ -369,7 +380,7 @@ function patch_rc_cgroup_sh() {
 	    # and the patch ends up on the expected line so will be detected
 	    # on later runs of this
 	    sed -i "$insert_on_line i \ " $fname
-	    sed -i "$insert_on_line i \$patch_line" $fname
+	    sed -i "$insert_on_line i \ $patch_line" $fname
 	    
 	    msg_3 "Patch completed!"
             ;;
@@ -890,12 +901,14 @@ function run_tasks() {
     task_do_extra_tasks
     task_user_pw_reminder
 }
-
+function run_tasks() {
+    task_sshd
+}
 
 
 setup_environment
 
-wait_after_summary=5
+wait_after_summary=0
 #
 # Display all tasks
 #
