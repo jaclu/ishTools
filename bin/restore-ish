@@ -68,9 +68,9 @@
 #
 #==========================================================
 
-function error_msg() {
-    local msg=$1
-    local err_code=$2
+error_msg() {
+    msg=$1
+    err_code=$2
 
     printf "\nERROR: $msg\n\n"
 
@@ -84,16 +84,16 @@ function error_msg() {
 #
 #  Progress messages
 #
-function msg_1() {
+msg_1() {
     #
     #   Display message centered inside a box
     #
-    local msg=$1
-    local pad_length=42
-    local msg_length="${#msg}"
-    local msg_half_length="$((${#msg}/2))"
-    local pad="a"
-    local pad_str="b"
+    msg=$1
+    pad_length=42
+    msg_length="${#msg}"
+    msg_half_length="$((${#msg}/2))"
+    pad="a"
+    pad_str="b"
 
     #
     # if msg was odd chars long, add a space to ensure it can be correctly
@@ -121,15 +121,15 @@ function msg_1() {
 }
 
 
-function msg_2() {
-    local msg=$1
+msg_2() {
+    msg=$1
 
     echo "=== $msg ==="
 }
 
 
-function msg_3() {
-    local msg=$1
+msg_3() {
+    msg=$1
 
     echo "--- $msg ---"
 }
@@ -142,15 +142,15 @@ function msg_3() {
 #
 #==========================================================
 
-function prepare_extract_location() {
-    local remove_space=$1
+prepare_extract_location() {
+    remove_space=$1
 
     extract_location="/tmp/restore-ish-$$"
     rm $extract_location -rf
     case "$remove_space" in
 	"")
 	    mkdir -p $extract_location
-	    cd $extract_location
+	    cd $extract_location || error_msg "prepare_extract_location() could not cd !" 1
 	    ;;
 	"1")
 	    ;;
@@ -161,13 +161,13 @@ function prepare_extract_location() {
     esac
 }
 
-function expand_path() {
+expand_path() {
     #
     #  Path not starting with / are asumed to be relative to
     #  $DEPLOY_PATH
     #
-    local this_path="$1"
-    local char_1=$(echo "$this_path" | head -c1)
+    this_path="$1"
+    char_1=$(echo "$this_path" | head -c1)
 
     if [ "$char_1" = "/" ]; then
         expanded_path="$this_path"
@@ -177,7 +177,7 @@ function expand_path() {
 }
 
 
-function expand_path_all_params() {
+expand_path_all_params() {
     #
     # Expands all path params that might be relative
     # to the deploy location into a full path
@@ -226,13 +226,13 @@ function expand_path_all_params() {
 }
 
 
-function setup_environment() {
+setup_environment() {
     #
     #   Identify the local env, and parse config file
     #
  
+    this_host=$(hostname)  # used in config file
 
-    this_host=$(hostname)
     #
     #  Identify fiilesystem, a lot of other operations depend on it, 
     #  should be done early
@@ -308,12 +308,12 @@ function setup_environment() {
 #
 #==========================================================
 
-function replace_default_fs_inittab() {
+replace_default_fs_inittab() {
     #
     # The AOK inittab is more complex, and does not need to be modified
     # to hack sshd to run at boot, so we do not touch it.
     #
-    local inittab
+    inittab
 
     if [ "$FileSystem" != "AOK" ]; then
 	msg_3 "/etc/inittab"
@@ -335,18 +335,18 @@ function replace_default_fs_inittab() {
 # Needs to be run as root, but since this script already has that
 # requirement it should be fine.
 #
-function patch_rc_cgroup_sh() {
-    local fname=/lib/rc/sh/rc-cgroup.sh
-    local fn_backup=${fname}.org
+patch_rc_cgroup_sh() {
+    fname=/lib/rc/sh/rc-cgroup.sh
+    fn_backup=${fname}.org
 
     # line wrapped to avoid ridiculously long line
-    local func_name_line_no=$(grep -n "cgroup2_find_path()" $fname |
+    func_name_line_no=$(grep -n "cgroup2_find_path()" $fname |
 				  cut --delimiter=":" --fields=1)
-    local insert_on_line=$((func_name_line_no+2))
+    insert_on_line=$((func_name_line_no+2))
 
     # In order to exand tab below, through trial and error, I discovered
     # double expanding it turned out to work. Do not ask me why...
-    local patch_line="\\treturn 0  # ** Hack for iSH by jaclu ***"
+    patch_line="\\treturn 0  # ** Hack for iSH by jaclu ***"
 
     msg_3 "Examining if $fname needs patching"
     
@@ -372,7 +372,7 @@ function patch_rc_cgroup_sh() {
 		echo "To make sure cgroup2_find_path() returns 0"
 		error_msg "Found $fn_backup read the above for further suggestions" 1		
 	    fi
-	    echo "Making function cgroup2_find_path() always return 0"
+	    echo "Making cgroup2_find_path() always return 0"
 	    echo "Saving original file to $fn_backup"
 	    cp $fname $fn_backup
 
@@ -388,7 +388,7 @@ function patch_rc_cgroup_sh() {
 }
 
 
-function ensure_user_shell_is_installed() {
+ensure_user_shell_is_installed() {
     if [ $task_display -eq 1 ]; then
         test -x $user_shell || error_msg "$user_shell not found\n>>> Make sure it gets installed!<<<\n"
     else
@@ -402,12 +402,12 @@ function ensure_user_shell_is_installed() {
 #  If $save_current is 1, curent home dir is moved to $home_dir-OLD and
 #  always restored.
 #
-function unpack_home_dir() {
-    local username=$1
-    local home_dir=$2
-    local fname_tgz=$3
-    local unpacked_ptr=$4
-    local save_current=$5
+unpack_home_dir() {
+    username=$1
+    home_dir=$2
+    fname_tgz=$3
+    unpacked_ptr=$4
+    save_current=$5
 
     # Initialized params
     #echo "unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current)"
@@ -494,7 +494,7 @@ function unpack_home_dir() {
 		mv $username $home_dir
 	    else
 		msg_3 "Overwriting into current $home_dir"
-		cd $home_dir
+		cd $home_dir || error_msg "Failed to cd into $home_dir" 1
 		cd ..
 		cp -a "$extract_location/$username" .
 	    fi
@@ -525,8 +525,8 @@ function unpack_home_dir() {
 #
 #==========================================================
 
-function task_aok_tweaks() {
-    local prof_dbg=/tmp/profile.debug
+task_aok_tweaks() {
+    prof_dbg=/tmp/profile.debug
 
     if [ "$FileSystem" = "AOK" ]; then
         msg_2 "Some AOK tweaks"
@@ -541,7 +541,7 @@ function task_aok_tweaks() {
 }
 
 
-function task_replace_some_etc_files() {
+task_replace_some_etc_files() {
     msg_2 "Copying some files to /etc"
     # If the config file is not found, no action will be taken
 
@@ -576,7 +576,7 @@ function task_replace_some_etc_files() {
 }
 
 
-function task_update() {
+task_update() {
     msg_2 "update & fix apk index"
     if [ $task_display -eq 1 ]; then
         msg_3 "Will happen"
@@ -588,8 +588,8 @@ function task_update() {
 }
 
 
-function task_remove_software() {
-    local msg_txt="Removing unwanted software"
+task_remove_software() {
+    msg_txt="Removing unwanted software"
 
     if [ "$sw_removed" != "" ]; then
         msg_2 "$msg_txt"
@@ -607,7 +607,7 @@ function task_remove_software() {
 }
 
 
-function task_upgrade() {
+task_upgrade() {
     msg_2 "upgrade installed apks"
     if [ $task_display -eq 1 ]; then
         msg_3 "Will happen"
@@ -619,7 +619,7 @@ function task_upgrade() {
 }
 
 
-function task_install_my_software() {
+task_install_my_software() {
     msg_txt="Installing my selection of software"
     if [ "$sw_installed" != "" ]; then
         msg_2 "$msg_txt"
@@ -638,9 +638,9 @@ function task_install_my_software() {
 }
 
 
-function task_timezone() {
-    local msg_txt="Setting timezone"
-    local tz_file=/usr/share/zoneinfo/$time_zone
+task_timezone() {
+    msg_txt="Setting timezone"
+    tz_file=/usr/share/zoneinfo/$time_zone
 
     if [ "$time_zone" != "" ]; then
         msg_2 "$msg_txt"
@@ -666,7 +666,7 @@ function task_timezone() {
 }
 
 
-function task_ssh_host_keys() {
+task_ssh_host_keys() {
     #
     #  Even if you don't intend to activate sshd initially
     #  it still makes sende to deploy any saved ssh host keys
@@ -674,7 +674,7 @@ function task_ssh_host_keys() {
     #  B) you dont have to wait for host keys to be generated
     #     when and if you want to run sshd
     #
-    local msg_txt="Device specific ssh host keys"
+    msg_txt="Device specific ssh host keys"
 
     if [ "$ssh_host_keys" != "" ]; then
         msg_2 "$msg_txt"
@@ -699,8 +699,8 @@ function task_ssh_host_keys() {
 }
 
 
-function task_sshd() {
-    local msg_txt="sshd service"
+task_sshd() {
+    msg_txt="sshd service"
     case "$activate_sshd_service" in
         -1 ) # disable
             msg_2 "$msg_txt"
@@ -753,7 +753,7 @@ function task_sshd() {
 }
 
 
-function task_nopasswd_sudo() {
+task_nopasswd_sudo() {
     msg_2 "no-pw sudo for group wheel"
     echo "will be set if not done already"
     if [ ! $task_display -eq 1 ]; then
@@ -770,9 +770,9 @@ function task_nopasswd_sudo() {
 }
 
 
-function task_restore_root_home() {
-    local msg_txt="Restoration of /root"
-    local tar_test_result
+task_restore_root_home() {
+    msg_txt="Restoration of /root"
+    tar_test_result
     
     if [ "$root_home_dir_tgz" != "" ]; then
 	unpack_home_dir root /root $root_home_dir_tgz $root_home_dir_unpacked_ptr $root_replace
@@ -781,9 +781,9 @@ function task_restore_root_home() {
 }
 
 
-function task_restore_user() {
-    local msg_txt="Username: $my_uname"
-    local user_shell=${my_shell:-/bin/ash}
+task_restore_user() {
+    msg_txt="Username: $my_uname"
+    user_shell=${my_shell:-/bin/ash}
 
     if [ "$my_uname" != "" ]; then
 	#
@@ -797,7 +797,7 @@ function task_restore_user() {
             ensure_user_shell_is_installed
             # ensure shadow and hence adduser is installed
             if [ ! $task_display -eq 1 ]; then
-                if ! test $(which useradd) ; then
+                if ! test -n $(which useradd) ; then
                     msg_3 "Adding shadow (provides useradd)"
                     apk add shadow
                 fi
@@ -828,8 +828,8 @@ function task_restore_user() {
 }
 
 
-function task_do_extra_tasks() {
-    local msg_txt="Running additional local restore tasks"
+task_do_extra_tasks() {
+    msg_txt="Running additional local restore tasks"
 
     if [ "$extra_tasks" != "" ]; then
         if [ $task_display -eq 1 ]; then
@@ -849,7 +849,7 @@ function task_do_extra_tasks() {
 }
 
 
-function task_user_pw_reminder() {
+task_user_pw_reminder() {
     [ $task_display -eq 1 ] && return
 
     if [ "$my_uname" != "" ] && [ "$(grep $my_uname:\!: /etc/shadow)" != "" ]; then
@@ -876,7 +876,7 @@ function task_user_pw_reminder() {
 # If task_display=1 then what will be done is displayed
 # otherwise the tasks are performed
 #
-function run_tasks() {
+run_tasks() {
     #
     # For testing/debugging any of the tasks can be commented out
     # It is probably not a good idea to reshuffle their order too much
@@ -911,7 +911,7 @@ function run_tasks() {
 if [ 0 = 1 ]; then
     # Testing specific task(-s)
     # only those listed below will be run
-    function run_tasks() {
+    run_tasks() {
 	task_sshd
     }
     # no need to wait if you are testing tasks...
