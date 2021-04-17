@@ -31,7 +31,7 @@
 #                Major cleanup, making everything modular
 #                expanding the README.md
 #
-# Dependency: This shell scripts  expects a config file to be present at
+# Dependency: This shell script expects a config file to be present at
 # ../custom/ishTols.cfg
 # There is a sample config file in ../samples/ishTols.cfg copy it into the
 # above location and modify it to match your preferences before running.
