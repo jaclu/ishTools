@@ -313,8 +313,6 @@ replace_default_fs_inittab() {
     # The AOK inittab is more complex, and does not need to be modified
     # to hack sshd to run at boot, so we do not touch it.
     #
-    inittab
-
     if [ "$FileSystem" != "AOK" ]; then
 	msg_3 "/etc/inittab"
 	# Get rid of unused getty's
@@ -486,7 +484,8 @@ unpack_home_dir() {
 		# suspicious
 		error_msg "Content outside intended destination found, check the tarfile!" 1
 	    fi
- 	    echo "Done"
+ 	    echo "Successfully extracted content"
+
 	    if [ $save_current -eq 1 ]; then
 		rm ${home_dir}-OLD -rf
 		mv $home_dir ${home_dir}-OLD
@@ -772,10 +771,8 @@ task_nopasswd_sudo() {
 
 task_restore_root_home() {
     msg_txt="Restoration of /root"
-    tar_test_result
-    
     if [ "$root_home_dir_tgz" != "" ]; then
-	unpack_home_dir root /root $root_home_dir_tgz $root_home_dir_unpacked_ptr $root_replace
+        unpack_home_dir root /root "$root_home_dir_tgz" "$root_home_dir_unpacked_ptr" "$root_replace"
     fi
     echo
 }
@@ -786,9 +783,9 @@ task_restore_user() {
     user_shell=${my_shell:-/bin/ash}
 
     if [ "$my_uname" != "" ]; then
-	#
-	# Ensure user is created
-	#
+        #
+        # Ensure user is created
+        #
         msg_2 "$msg_txt"
         grep ^$my_uname /etc/passwd > /dev/null
         if [ $? -eq 1 ]; then
@@ -800,12 +797,12 @@ task_restore_user() {
                 if ! test -n $(which useradd) ; then
                     msg_3 "Adding shadow (provides useradd)"
                     apk add shadow
-                fi
-		# we need to ensure the group exists, before using it in useradd
-		# TODO: identidy a 501 group by name and delete it
-		groupdel -g $my_uname 2> /dev/null
-		groupadd -g 501 $my_uname 
-		# sets uid & gid to 501, to match apples uid/gid on iOS mounts
+                fi 
+		        # we need to ensure the group exists, before using it in useradd
+		        # TODO: identidy a 501 group by name and delete it
+		        groupdel -g $my_uname 2> /dev/null
+		        groupadd -g 501 $my_uname 
+		        #  sets uid & gid to 501, to match apples uid/gid on iOS mounts
                 useradd -u 501 -g 501 -G wheel -m -s $user_shell $my_uname
             fi
         else
@@ -814,13 +811,13 @@ task_restore_user() {
         fi
         echo
 	
-   	#
-	# Restore user home
-	#
-	if [ "$my_home_dir_tgz" != "" ]; then
+   	    #
+	    # Restore user home
+	    #
+	    if [ "$my_home_dir_tgz" != "" ]; then
             msg_txt="Restoration of /home/$my_uname"
-	    unpack_home_dir $my_uname /home/$my_uname "$my_home_dir_tgz" "$my_home_dir_unpacked_ptr"
-	fi
+	        unpack_home_dir $my_uname /home/$my_uname "$my_home_dir_tgz" "$my_home_dir_unpacked_ptr"
+	    fi
     elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_2 "Will NOT create any user"
     fi
@@ -912,7 +909,7 @@ if [ 0 = 1 ]; then
     # Testing specific task(-s)
     # only those listed below will be run
     run_tasks() {
-	task_sshd
+  	  task_restore_root_home
     }
     # no need to wait if you are testing tasks...
     wait_after_summary=0
