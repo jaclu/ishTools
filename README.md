@@ -12,7 +12,7 @@ restoree-ish has two primary usage cases
   - /root dir
   - home dir
   
-  Into a fresh state, it is not fully indempotent, but close enough.
+  Into a fresh state, it is not fully indempotent, since some tasks will be redone, but it is in the sense that repeated runs wont alter anything unless config changes requests so.
 
 ## Filestructure
 ### /bin 
