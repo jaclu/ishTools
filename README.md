@@ -87,10 +87,9 @@ My procedure on a pristine iSH system (as root)
   - default FS
     - For local access, just do su - {your username}
   - AOK FS
-    - For local access just exit the current session and login as {username} with or without password
-    - ssh can be enabled without rebooting, so you can imeditally ssh into the device.
+    - For local access just exit the current session and login as {username} with or without password, depending on if one was set.
   - Common for both
-    - For ssh access, asuming you have activated sshd, as soon as a password is set for any account you can ssh into it.
+    - For ssh access, asuming you have activated sshd, as soon as "sshd listening on port: xx" is displayed, you can login using the displayed port and as long as the used account has a password set.
     
 ### sshd related things to be aware of
 
