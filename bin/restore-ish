@@ -31,7 +31,7 @@
 #                Major cleanup, making everything modular
 #                expanding the README.md
 #
-# Dependency: This shell scripts  expects a config file to be present at
+# Dependency: This shell script expects a config file to be present at
 # ../custom/ishTols.cfg
 # There is a sample config file in ../samples/ishTols.cfg copy it into the
 # above location and modify it to match your preferences before running.
@@ -72,11 +72,12 @@ error_msg() {
     msg=$1
     err_code=$2
 
+    #printf "\nERROR: %s\n\n" "$msg"
     printf "\nERROR: $msg\n\n"
 
     if [ "$err_code" != "" ]; then
 	prepare_extract_location 1 # clear tmp extract dir
-        exit $err_code
+        exit "$err_code"
     fi
 }
 
@@ -89,34 +90,39 @@ msg_1() {
     #   Display message centered inside a box
     #
     msg=$1
-    pad_length=42
-    msg_length="${#msg}"
-    msg_half_length="$((${#msg}/2))"
-    pad="a"
-    pad_str="b"
+    max_length=42
 
     #
     # if msg was odd chars long, add a space to ensure it can be correctly
-    # be split in half
+    # be split in half. Since this only handles ints, the /2*2 will result
+    # in an even number rounded down.
     #
-    if [ $msg_length -ne $(( msg_half_length * 2 )) ] ; then
-        msg="$msg "
-        msg_length="${#msg}"
+    if [ "${#msg}" -ne "$(( ${#msg}/2*2 ))" ] ; then
+        msg=" $msg"
     fi
 
-    # if string is to long, dont use padding
-    if [ $msg_length -ge $pad_length ]; then
+    if [ "${#msg}" -ge "$max_length" ]; then
+	# if string is to long, dont use padding
         pad_str=""
     else
-        pad="                                                             "
-        pad_str=${pad:0:$(( (pad_length-${#msg}) / 2))}
+	pad_length=$(( (max_length - ${#msg})/2  ))
+	# posix friendly way of generating x instances of a char
+	pad_str=$( head -c $pad_length  < /dev/zero | tr '\0' ' ' )
     fi
-    echo
-    echo "+==========================================+"
-    echo "|                                          |"
+
+    border_line="+$( head -c $max_length  < /dev/zero | tr '\0' '=' )+"
+    #
+    # TODO:  When generating the spacer padding as a variable,
+    # it only translates to one space, but if used as an expression,
+    # all spaces are generated
+    #
+    #spacer_line="|$( head -c $max_length  < /dev/zero | tr '\0' ' ' )|"
+    
+    echo "$border_line"
+    echo "|$( head -c $max_length  < /dev/zero | tr '\0' ' ' )|"
     echo "|$pad_str$msg$pad_str|"
-    echo "|                                          |"
-    echo "+==========================================+"
+    echo "|$( head -c $max_length  < /dev/zero | tr '\0' ' ' )|"
+    echo "$border_line"
     echo
 }
 
@@ -231,8 +237,6 @@ setup_environment() {
     #   Identify the local env, and parse config file
     #
  
-    this_host=$(hostname)  # used in config file
-
     #
     #  Identify fiilesystem, a lot of other operations depend on it, 
     #  should be done early
@@ -248,14 +252,27 @@ setup_environment() {
     #
     # Find where this package is deployed, then use this for relative locations
     #
-    DEPLOY_PATH="`dirname \"$0\"`/.."               # relative
-    DEPLOY_PATH="`( cd \"$DEPLOY_PATH\" && pwd )`"  # absolutized and normalized
-    test -d $DEPLOY_PATH || error_msg "could not identify DEPLOY_PATH!!" 1
+    DEPLOY_PATH="$(dirname "$0")/.."               # relative
+    DEPLOY_PATH="$( cd "$DEPLOY_PATH" && pwd )"  # absolutized and normalized
+    test -d "$DEPLOY_PATH" || error_msg "could not identify DEPLOY_PATH [$DEPLOY_PATH] !!" 1
+
+    #
+    # Set some defaults, in case they are not set in the config file
+    # This prevents shellcheck from giving waarnings aboout unasigned variables
+    # 
+    my_uname=""
+    sw_removed=""
+    sw_installed=""
+    time_zone=""
+    root_home_dir_unpacked_ptr=""
+    my_home_dir_unpacked_ptr=""
+    extra_tasks=""
+    
     #
     # Config file
     #
     cfg_file=$DEPLOY_PATH/custom/ishTols.cfg
-    if [ "$cfg_file" != "" ] && test -f $cfg_file ; then
+    if [ "$cfg_file" != "" ] && test -f "$cfg_file" ; then
         . "$cfg_file"
     else
         echo
@@ -275,14 +292,6 @@ setup_environment() {
         display_non_tasks=0
     fi
     
-    [ "$activate_sshd_service" = "" ] && activate_sshd_service=0
-    case "$activate_sshd_service" in
-        -1|0|1)
-            ;;
-        *)
-            error_msg "Invalid setting: activate_sshd_service=$activate_sshd_service\nValid options: -1 0 1" 1
-    esac
-
     # Default sshd port
     if [ "$sshd_port" = "" ]; then
 	sshd_port=1022
@@ -308,6 +317,49 @@ setup_environment() {
 #
 #==========================================================
 
+ensure_installed() {
+    pk=$1
+    msg=$2
+    test -z "$pk" && error_msg "ensure_installed() called with no param!" 1
+    test -z "$msg" && msg="Installing dependency $pk"
+    if [ "$(apk info -e $pk)" = "" ]; then
+	msg_3 "$msg"
+        apk add $pk
+	return 1
+    fi
+    return 0
+}
+
+
+ensure_runlevel_default() {
+    ensure_installed openrc
+    patch_rc_cgroup_sh
+
+    bad_srvc=/etc/init.d/hwdrivers
+    if test -f "$bad_srvc" ; then
+	#
+	# TODO: check if this is no longer needed in order to avoid getting
+	# warnings about hwdrivers not finding dependency 'dev'
+	# Still needed: 2021-04-27
+	#
+	echo
+	echo "============================================================"
+	echo "Removing a failing service: $bad_srvc"
+	echo "To avoid pointless warnings about non existent dependency."
+	echo "Reinstalling openrc package should recreate this file"
+	echo "============================================================"
+	echo
+	rm "$bad_srvc"
+    fi
+    
+    if [ "$(rc-status -r)" != "default" ]; then
+	msg_2 "Setting runlevel default"
+	openrc default
+    fi
+}
+
+
+
 replace_default_fs_inittab() {
     #
     # The AOK inittab is more complex, and does not need to be modified
@@ -318,11 +370,13 @@ replace_default_fs_inittab() {
 	# Get rid of unused getty's
 	inittab=$DEPLOY_PATH/files/inittab-default-FS
 	echo "$inittab"
-	if [ ! $task_display -eq 1 ]; then
+	if [ ! "$task_display" -eq 1 ]; then
 	    cp "$inittab" /etc/inittab
+	    ensure_runlevel_default
 	fi
     fi
 }
+
 
 
 #
@@ -337,9 +391,10 @@ patch_rc_cgroup_sh() {
     fname=/lib/rc/sh/rc-cgroup.sh
     fn_backup=${fname}.org
 
+    ensure_installed coreutils
+    
     # line wrapped to avoid ridiculously long line
-    func_name_line_no=$(grep -n "cgroup2_find_path()" $fname |
-				  cut --delimiter=":" --fields=1)
+    func_name_line_no=$(grep -n "cgroup2_find_path()" $fname | cut --delimiter=":" --fields=1)
     insert_on_line=$((func_name_line_no+2))
 
     # In order to exand tab below, through trial and error, I discovered
@@ -387,10 +442,10 @@ patch_rc_cgroup_sh() {
 
 
 ensure_user_shell_is_installed() {
-    if [ $task_display -eq 1 ]; then
-        test -x $user_shell || error_msg "$user_shell not found\n>>> Make sure it gets installed!<<<\n"
+    if [ "$task_display" -eq 1 ]; then
+        test -x "$user_shell" || error_msg "$user_shell not found\n>>> Make sure it gets installed!<<<\n"
     else
-        test -x $user_shell || error_msg "INVALID SHELL: $user_shell" 1
+        test -x "$user_shell" || error_msg "INVALID SHELL: $user_shell" 1
     fi   
 }
 
@@ -405,9 +460,9 @@ unpack_home_dir() {
     home_dir=$2
     fname_tgz=$3
     unpacked_ptr=$4
-    save_current=$5
+    save_current=$5 ; [ "$save_current" != "1" ] && save_current=0
 
-    # Initialized params
+    # (mostly) unverified params
     #echo "unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current)"
 
     #
@@ -417,36 +472,34 @@ unpack_home_dir() {
     if [ "$username" = "" ]; then
 	error_msg "unpack_home_dir() no username given" 1
     fi
-    if [ ! $task_display -eq 1 ] && [ "$(grep ^$username /etc/passwd | wc -l)" != "1" ]; then
+    if [ ! "$task_display" -eq 1 ] && [ "$(grep -c ^"$username" /etc/passwd)" != "1" ]; then
 	error_msg "unpack_home_dir($username) - username not found in /etc/passwd" 1
     fi
     if [ "$home_dir" = "" ]; then
         error_msg "unpack_home_dir() no home_dir given" 1
     fi
-    if [ ! $task_display -eq 1 ] && [ ! -d "$home_dir" ]; then
+    if [ ! "$task_display" -eq 1 ] && [ ! -d "$home_dir" ]; then
         error_msg "unpack_home_dir($username, $home_dir) - home_dir does not exist" 1
     fi
-    if [ ! $task_display -eq 1 ] && [ "$(ls -ld $home_dir | awk '{print $3}')" != "$username" ]; then
+    if [ ! "$task_display" -eq 1 ] && [ "$(find "$home_dir" -maxdepth 0 -user "$username")" = "" ]; then
         error_msg "unpack_home_dir($username, $home_dir) - username does not own home_dir" 1
     fi
     if [ "$fname_tgz" = "" ] || [ "$fname_tgz" = "1" ]; then
 	error_msg "unpack_home_dir($username, $home_dir,) - No tar file to be extracted given" 1
     fi
-    if ! test -f $fname_tgz ; then
+    if ! test -f "$fname_tgz" ; then
     	error_msg "tar file not found:\n[$fname_tgz]" 1
     fi 
     case "$unpacked_ptr" in
 	"0"|"1" )
   	    # Not actual error, no unpacked_ptr given so save_current got shifted here"
-	    save_current=$unpacked_ptr
 	    unpacked_ptr=""
  	    ;;
 	*)
 	   
     esac
-    [ "$save_current" != "1" ] && save_current=0
-    # Parsed, and in some cases reshuffeled params
-    #echo "unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current)"
+    # Parsed, verified and in some cases shifted params
+    #echo "unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current) - verified params"
  
     #
     #  Actual work starts
@@ -455,7 +508,7 @@ unpack_home_dir() {
     if [ $save_current -eq 1 ]; then
 	do_unpack=1 # always restore
     else
-    	if test -f $unpacked_ptr && [ "$unpacked_ptr" != "" ] ; then
+    	if test -f "$unpacked_ptr" && [ "$unpacked_ptr" != "" ] ; then
             msg_3 "Already restored"
             echo "Found: $unpacked_ptr"
             do_unpack=0
@@ -464,7 +517,7 @@ unpack_home_dir() {
    	fi
     fi
     if [ $do_unpack -eq 1 ]; then
-        if [ $task_display -eq 1 ]; then
+        if [ "$task_display" -eq 1 ]; then
 	    msg_3 "Will be restored"
  	    echo "Using: $fname_tgz"
 	    if [ $save_current -eq 1 ]; then
@@ -473,9 +526,8 @@ unpack_home_dir() {
 	else
 	    prepare_extract_location
 	    msg_3 "Extracting"
-	    echo $fname_tgz
-	    2> /dev/null tar xfz "$fname_tgz"
-	    if [ $? -ne 0 ]; then
+	    echo "$fname_tgz"
+	    if ! tar xfz "$fname_tgz" 2> /dev/null ; then
 		error_msg "Failed to unpack tarball" 1
 	    fi
 	    if [ ! -d "$extract_location/$username" ]; then
@@ -487,13 +539,13 @@ unpack_home_dir() {
  	    echo "Successfully extracted content"
 
 	    if [ $save_current -eq 1 ]; then
-		rm ${home_dir}-OLD -rf
-		mv $home_dir ${home_dir}-OLD
+		rm "$home_dir"-OLD -rf
+		mv "$home_dir" "$home_dir}"-OLD
 		msg_3 "Previous content has been moved to ${home_dir}-OLD"
-		mv $username $home_dir
+		mv "$username" "$home_dir"
 	    else
 		msg_3 "Overwriting into current $home_dir"
-		cd $home_dir || error_msg "Failed to cd into $home_dir" 1
+		cd "$home_dir" || error_msg "Failed to cd into $home_dir" 1
 		cd ..
 		cp -a "$extract_location/$username" .
 	    fi
@@ -548,12 +600,12 @@ task_replace_some_etc_files() {
     msg_txt="/etc/hosts"
     if [ "$hosts_file" != "" ]; then
         msg_3 "$msg_txt"
-        test -f $hosts_file || error_msg "hosts_file not found!\n$hosts_file" 1
+        test -f "$hosts_file" || error_msg "hosts_file not found!\n$hosts_file" 1
         echo "$hosts_file"
-        if [ ! $task_display -eq 1 ]; then
+        if [ ! "$task_display" -eq 1 ]; then
             cp "$hosts_file"  /etc/hosts
         fi
-    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_3 "$msg_txt"
         echo "Will NOT be modified"
     fi
@@ -561,12 +613,12 @@ task_replace_some_etc_files() {
     msg_txt="/etc/apk/repositories"
     if  [ "$repositories_file" != "" ]; then
         msg_3 "$msg_txt"
-        test -f $repositories_file || error_msg "repositories_file not found!\n$repositories_file" 1
+        test -f "$repositories_file" || error_msg "repositories_file not found!\n$repositories_file" 1
         echo "$repositories_file"
-        if [ ! $task_display -eq 1 ]; then
+        if [ ! "$task_display" -eq 1 ]; then
             cp "$repositories_file" /etc/apk/repositories
         fi
-    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_3 "$msg_txt"
         echo "Will NOT be modified"
     fi
@@ -577,11 +629,10 @@ task_replace_some_etc_files() {
 
 task_update() {
     msg_2 "update & fix apk index"
-    if [ $task_display -eq 1 ]; then
+    if [ "$task_display" -eq 1 ]; then
         msg_3 "Will happen"
-    else
-        apk update && apk fix
-        [ $? -ne 0 ] && error_msg "Failed to update repos - network issue?" 1
+    elif ! apk update && apk fix ; then
+        error_msg "Failed to update repos - network issue?" 1
     fi
     echo
 }
@@ -592,13 +643,22 @@ task_remove_software() {
 
     if [ "$sw_removed" != "" ]; then
         msg_2 "$msg_txt"
-        if [ $task_display -eq 1 ]; then
+        if [ "$task_display" -eq 1 ]; then
             echo "$sw_removed"
         else
-            apk del $sw_removed
+	    # TODO: fix
+	    # argh due to shellcheck complaining that
+	    #   apk del $sw_removed
+	    # should instead be:
+	    #   apk del "$sw_removed"
+	    # and that leads to apk not recognizing it as multiple apks
+	    # this seems to be a useable workarround
+	    #
+	    cmd="apk del $sw_removed"
+	    $cmd
         fi
         echo
-    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_2 "$msg_txt"
         echo "Will NOT remove any listed software"
         echo
@@ -608,11 +668,10 @@ task_remove_software() {
 
 task_upgrade() {
     msg_2 "upgrade installed apks"
-    if [ $task_display -eq 1 ]; then
+    if [ "$task_display" -eq 1 ]; then
         msg_3 "Will happen"
     else
-        apk upgrade
-        [ $? -ne 0 ] && error_msg "Failed to upgrade apks - network issue?" 1
+        apk upgrade ||  error_msg "Failed to upgrade apks - network issue?" 1
     fi
     echo
 }
@@ -622,20 +681,21 @@ task_install_my_software() {
     msg_txt="Installing my selection of software"
     if [ "$sw_installed" != "" ]; then
         msg_2 "$msg_txt"
-        if [ $task_display -eq 1 ]; then
+        if [ "$task_display" -eq 1 ]; then
             echo "$sw_installed"
         else
-            apk add $sw_installed
-            [ $? -ne 0 ] && error_msg "Failed to install requested software - network issue?" 1
+	    # TODO: see in task_remove_software() for description
+	    # about why this seems needed ATM
+	    cmd="apk add $sw_installed"
+            $cmd || error_msg "Failed to install requested software - network issue?" 1
 	fi
         echo
-    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_2 "$msg_txt"
         echo "Will NOT install any listed software"
         echo
     fi
 }
-
 
 task_timezone() {
     msg_txt="Setting timezone"
@@ -644,8 +704,8 @@ task_timezone() {
     if [ "$time_zone" != "" ]; then
         msg_2 "$msg_txt"
         echo "$time_zone"
-        if [ ! $task_display -eq 1 ]; then
-            test -f /usr/sbin/zic || apk add tzdata
+        if [ ! "$task_display" -eq 1 ]; then
+	    ensure_installed tzdata
             if [ "$tz_file" != "" ] && test -f $tz_file ; then
                 cp "$tz_file" /etc/localtime
                 # remove obsolete file
@@ -657,7 +717,7 @@ task_timezone() {
             fi
         fi
         echo
-    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_2 "$msg_txt"
         echo "Timezone ill NOT be changed"
         echo
@@ -677,12 +737,12 @@ task_ssh_host_keys() {
 
     if [ "$ssh_host_keys" != "" ]; then
         msg_2 "$msg_txt"
-        if test -f $ssh_host_keys ; then
+        if test -f "$ssh_host_keys" ; then
             msg_3 "Will be untared into /etc/ssh"
             echo "$ssh_host_keys"
-            if [ ! $task_display -eq 1 ]; then
-                test -d /etc/ssh || apk add openssh-client
-                cd /etc/ssh
+            if [ ! "$task_display" -eq "1" ]; then
+	        ensure_installed openssh-client
+                cd /etc/ssh || error_msg "Failed to cd into /etc/ssh" 1
                 2>/dev/null rm /etc/ssh/ssh_host_*
                 tar xvfz "$ssh_host_keys"
             fi
@@ -690,7 +750,7 @@ task_ssh_host_keys() {
             msg_3 "Not found"
             echo "$ssh_host_keys"
         fi
-    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_2 "$msg_txt"
         echo "Will NOT be used"
     fi
@@ -704,9 +764,8 @@ task_sshd() {
         -1 ) # disable
             msg_2 "$msg_txt"
             msg_3 "will be disabled"
-            if [ ! $task_display -eq 1 ]; then			
+            if [ ! "$task_display" -eq 1 ]; then			
                 if [ "$(2> /dev/null rc-status |grep sshd)" != "" ]; then
-    		    openrc default
 		    rc-service sshd stop
         	    rc-update del sshd
 		    msg_3 "was disabled"
@@ -714,9 +773,10 @@ task_sshd() {
                     echo "sshd not active, no action needed"
                 fi
             fi
+	    echo
             ;;
         0 )  # unchanged
-            if [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+            if [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
                 msg_2 "$msg_txt"
                 echo "Will NOT be changed"
             fi
@@ -728,25 +788,80 @@ task_sshd() {
 	    if [ "$sshd_port" = "" ]; then
 		error_msg "Invalid setting: sshd_port must be specified" 1
 	    fi
-            msg_3 "Will be enabled"
 	    # This will be run regardless if it was already running,
 	    # since the sshd_config might have changed
-            if [ ! $task_display -eq 1 ]; then
-		msg_3 "Installing openssh & openrc"
-		apk add openssh openrc
+            if [ "$task_display" -eq 1 ]; then
+		msg_3 "Will be enabled"
+		echo "port: $sshd_port"
+		echo
+	    else
+		ensure_runlevel_default
+		ensure_installed openssh
 		# use requested port
 		sed -i "s/.*Port.*/Port $sshd_port/" /etc/ssh/sshd_config
-		patch_rc_cgroup_sh
-		# activate service
-		openrc default
-		rc-update add sshd
-		# in case some config changes happened, make sure its restarted
+
+		if [ "$(rc-status  | grep sshd | grep started)" = "" ]; then
+		    # activate service
+		    rc-update add sshd
+		fi
+		
+		# in case some config changes happened, make sure sshd is restarted
 		rc-service sshd restart
 		msg_1 "sshd listening on port: $sshd_port"
             fi
             ;;
         *)
             error_msg "Invalid setting: activate_sshd_service=$activate_sshd_service\nValid options: -1 0 1" 1
+    esac
+}
+
+
+task_location_tracker() {
+    msg_txt="location_tracker service"
+    msg2_txt="  Ensuring iSH continues to run in the background."
+    case "$activate_location_tracker" in
+        -1 ) # disable
+	    msg_2 "$msg_txt"
+    	    echo "$msg2_txt"
+            msg_3 "will be disabled"
+            if [ ! "$task_display" -eq 1 ]; then			
+                if [ "$(2> /dev/null rc-status |grep location_tracker)" != "" ]; then
+		    rc-service location_tracker stop
+        	    rc-update del location_tracker
+		    msg_3 "was disabled"
+                else
+                    echo "location_tracker not active, no action needed"
+                fi
+		rm /etc/init.d/location_tracker 2> /dev/null
+            fi
+            ;;
+        0 )  # unchanged
+            if [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+		msg_2 "$msg_txt"
+                echo "Will NOT be changed"
+            fi
+
+            ;;
+	
+        1 )  # activate 
+    	    msg_2 "$msg_txt"
+    	    echo "$msg2_txt"
+            if [ "$task_display" -eq 1 ]; then
+		msg_3 "Will be enabled"
+	    else	
+		ensure_runlevel_default
+		if [ "$(rc-status  | grep location_tracker | grep started)" = "" ]; then
+		    # Only do this if it is not running...
+		    
+		    # copy service file into place
+		    cp -av $DEPLOY_PATH/files/init.d-location_tracker /etc/init.d/location_tracker
+		    rc-update add location_tracker
+		    rc-service location_tracker restart
+		fi
+            fi
+            ;;
+        *)
+            error_msg "Invalid setting: activate_location_tracker=$activate_location_tracker\nValid options: -1 0 1" 1
     esac
     echo
 }
@@ -755,8 +870,8 @@ task_sshd() {
 task_nopasswd_sudo() {
     msg_2 "no-pw sudo for group wheel"
     echo "will be set if not done already"
-    if [ ! $task_display -eq 1 ]; then
-        test -f /usr/sbin/visudo || apk add sudo
+    if [ ! "$task_display" -eq 1 ]; then
+        ensure_installed sudo
         grep restore-ish /etc/sudoers > /dev/null
         if [ $? -eq 1 ]; then
             msg_3 "adding %wheel NOPASSWD to /etc/sudoers"
@@ -787,23 +902,22 @@ task_restore_user() {
         # Ensure user is created
         #
         msg_2 "$msg_txt"
-        grep ^$my_uname /etc/passwd > /dev/null
-        if [ $? -eq 1 ]; then
-            msg_3 "Will be created"
-            msg_3 "shell: $user_shell"
-            ensure_user_shell_is_installed
+        if ! grep ^"$my_uname" /etc/passwd > /dev/null ; then
             # ensure shadow and hence adduser is installed
-            if [ ! $task_display -eq 1 ]; then
-                if ! test -n $(which useradd) ; then
-                    msg_3 "Adding shadow (provides useradd)"
-                    apk add shadow
-                fi 
-		        # we need to ensure the group exists, before using it in useradd
-		        # TODO: identidy a 501 group by name and delete it
-		        groupdel -g $my_uname 2> /dev/null
-		        groupadd -g 501 $my_uname 
-		        #  sets uid & gid to 501, to match apples uid/gid on iOS mounts
-                useradd -u 501 -g 501 -G wheel -m -s $user_shell $my_uname
+            if [ "$task_display" -eq 1 ]; then
+		msg_3 "Will be created"
+		msg_3 "shell: $user_shell"
+		ensure_user_shell_is_installed
+	    else
+	        ensure_installed shadow "Adding shadow (provides useradd)"
+		# we need to ensure the group exists, before using it in useradd
+		# TODO: identidy a 501 group by name and delete it
+		groupdel -g "$my_uname" 2> /dev/null
+		groupadd -g 501 "$my_uname"
+		#  sets uid & gid to 501, to match apples uid/gid on iOS mounts
+		useradd -u 501 -g 501 -G wheel -m -s "$user_shell" "$my_uname"
+		msg_3 "added: $my_uname"
+		msg_3 "shell: $user_shell"
             fi
         else
             msg_3 "Already pressent"
@@ -815,10 +929,10 @@ task_restore_user() {
 	    # Restore user home
 	    #
 	    if [ "$my_home_dir_tgz" != "" ]; then
-            msg_txt="Restoration of /home/$my_uname"
-	        unpack_home_dir $my_uname /home/$my_uname "$my_home_dir_tgz" "$my_home_dir_unpacked_ptr"
+		msg_txt="Restoration of /home/$my_uname"
+	        unpack_home_dir "$my_uname" /home/"$my_uname" "$my_home_dir_tgz" "$my_home_dir_unpacked_ptr"
 	    fi
-    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$task_display" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
         msg_2 "Will NOT create any user"
     fi
     echo
@@ -827,19 +941,22 @@ task_restore_user() {
 
 task_do_extra_tasks() {
     msg_txt="Running additional local restore tasks"
-
     if [ "$extra_tasks" != "" ]; then
-        if [ $task_display -eq 1 ]; then
+        if [ "$task_display" -eq 1 ]; then
             msg_2 "$msg_txt"
+	    echo "$extra_tasks"
         else
             msg_1 "$msg_txt"
         fi
-        echo "Script: $extra_tasks"
-        test -f $extra_tasks || error_msg "script not found" 1
-        test -x $extra_tasks || error_msg "script not executable" 1
-        echo
-        [ $task_display -eq 1 ] || . "$extra_tasks"
-    elif [ $task_display -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+        test -f "$extra_tasks" || error_msg "$extra_tasks not found" 1
+        test -x "$extra_tasks" || error_msg "$extra_tasks not executable" 1
+        if [ "$task_display" -eq 0 ]; then
+	    echo "Running:   $extra_tasks"
+	    echo
+	    . "$extra_tasks"
+	    echo "Completed: $extra_tasks"
+	fi
+    elif [ "$task_display" -eq 1 ] &&  [ "$display_non_tasks" -eq 1 ]; then
         msg_2 "NO extra tasks will be run"
     fi
     echo
@@ -847,9 +964,9 @@ task_do_extra_tasks() {
 
 
 task_user_pw_reminder() {
-    [ $task_display -eq 1 ] && return
+    [ "$task_display" -eq 1 ] && return
 
-    if [ "$my_uname" != "" ] && [ "$(grep $my_uname:\!: /etc/shadow)" != "" ]; then
+    if [ "$my_uname" != "" ] && [ "$(grep "$my_uname":\!: /etc/shadow)" != "" ]; then
         echo "+------------------------------+"
         echo "|                              |"
         echo "|  Remember to set a password  |"
@@ -869,6 +986,7 @@ task_user_pw_reminder() {
 #
 #==========================================================
 
+
 #
 # If task_display=1 then what will be done is displayed
 # otherwise the tasks are performed
@@ -881,15 +999,17 @@ run_tasks() {
     #
     task_aok_tweaks
     task_replace_some_etc_files
-
     task_update
+
     # do before upgrade to avoid time waste of upgrading
     # only to then remove it
     task_remove_software
+
     task_upgrade
 
     task_install_my_software
     task_timezone
+    task_location_tracker
     task_ssh_host_keys
     task_sshd
     task_nopasswd_sudo
@@ -902,14 +1022,15 @@ run_tasks() {
 
 #
 #  Debug tasks, set condition as 
-#    0 = 1 for normal operation
-#    1 = 1 to run the test
+#    false for normal operation
+#    true  to run the test case
 #
-if [ 0 = 1 ]; then
+if false; then
     # Testing specific task(-s)
     # only those listed below will be run
+    msg_1 "custom restore"
     run_tasks() {
-  	  task_restore_root_home
+	task_location_tracker
     }
     # no need to wait if you are testing tasks...
     wait_after_summary=0
@@ -947,4 +1068,4 @@ run_tasks
 # Ensure tmp directory is gone
 prepare_extract_location 1
 
-msg_2 "All done, system restored!"
+msg_2 "All tasks done, system restored!"
