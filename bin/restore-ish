@@ -3,7 +3,10 @@
 # Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
 # License: MIT
 #
-# Version: 0.3.7 2021-04-13
+# Version: 0.3.X 2021-04-xx
+#                Created a service that keeps machine running in background without
+#                the need for any login
+#          0.3.7 2021-04-13
 #                Second oops in the same day, unintentional removal of a space in
 #		 patch_rc_cgroup_sh() that caused the patch to fail
 #          0.3.6 2021-04-13
