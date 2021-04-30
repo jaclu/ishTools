@@ -1,0 +1,70 @@
+#!/bin/sh
+#
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
+# License: MIT
+
+
+
+task_timezone() { 
+    time_zone=$1
+    tz_file=/usr/share/zoneinfo/$time_zone
+    
+    msg_txt="Setting timezone"
+    if [ "$time_zone" != "" ]; then
+        msg_2 "$msg_txt"
+        echo "$time_zone"
+        if [ ! "$IT_TASK_DISPLAY" = "1" ]; then
+	    ensure_installed tzdata
+            if [ "$tz_file" != "" ] && test -f $tz_file ; then
+                cp "$tz_file" /etc/localtime
+                # remove obsolete file
+                2> /dev/null rm /etc/timezone
+                msg_3 "displaying time"
+                date
+            else
+                error_msg "BAD TIMEZONE: $time_zone" 1
+            fi
+        fi
+        echo
+    elif [ "$IT_TASK_DISPLAY" = "1" ] &&  [ $IT_DISPLAY_NON_TASKS = "1" ]; then
+        msg_2 "$msg_txt"
+        echo "Timezone ill NOT be changed"
+        echo
+    fi
+}
+
+
+if test -z "$DEPLOY_PATH" ; then
+    # Most likely not sourced...
+    DEPLOY_PATH="$(dirname "$0")/.."               # relative
+    DEPLOY_PATH="$( cd "$DEPLOY_PATH" && pwd )"  # absolutized and normalized
+fi
+. "$DEPLOY_PATH/scripts/extras/utils"
+
+
+#==========================================================
+#
+#     Not sourced main
+#
+#==========================================================
+if [ "$IT_INITIAL_SCRIPT" = "" ]; then
+    # Since sourced mode cant be detected in a practiacl way under ash,
+    # I use this workaround
+    IT_INITIAL_SCRIPT=1
+
+    case "$1" in
+	"-?"|"-h"|"--help")
+	    echo "task_timezone [time_zone]"
+	    echo
+	    echo "Env paramas"
+	    echo "IT_TIME_ZONE$(test -z "$IT_TIME_ZONE" && echo ' - set time-zone' || echo =$IT_TIME_ZONE )"
+	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
+	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
+	    ;;
+	*)
+	    test -z "$1" || IT_TIME_ZONE="$1"
+	    task_timezone
+    esac
+fi
+
+

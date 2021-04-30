@@ -1,0 +1,128 @@
+#!/bin/sh
+#
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
+# License: MIT
+
+
+task_ssh_host_keys() {
+    #
+    #  Even if you don't intend to activate sshd initially
+    #  it still makes sende to deploy any saved ssh host keys
+    #  A) they are there if you need them
+    #  B) you dont have to wait for host keys to be generated
+    #     when and if you want to run sshd
+    #
+    msg_txt="Device specific ssh host keys"
+
+    if [ "$IT_SSH_HOST_KEYS" != "" ]; then
+        msg_2 "$msg_txt"
+        if test -f "$IT_SSH_HOST_KEYS" ; then
+            msg_3 "Will be untared into /etc/ssh"
+            echo "$IT_SSH_HOST_KEYS"
+            if [ "$IT_TASK_DISPLAY" != "1" ]; then
+	        ensure_installed openssh-client
+                cd /etc/ssh || error_msg "Failed to cd into /etc/ssh" 1
+                2>/dev/null rm /etc/ssh/ssh_host_*
+                tar xvfz "$IT_SSH_HOST_KEYS"
+            fi
+        else
+            msg_3 "Not found"
+            echo "$IT_SSH_HOST_KEYS"
+        fi
+    elif [ "$IT_TASK_DISPLAY" = "1" ] &&  [ "$IT_DISPLAY_NON_TASKS" = "1" ]; then
+        msg_2 "$msg_txt"
+        echo "Will NOT be used"
+    fi
+    echo
+}
+
+
+task_sshd() {
+    msg_txt="sshd service"
+    case "$IT_SSHD_SERVICE" in
+        -1 ) # disable
+            msg_2 "$msg_txt"
+            msg_3 "will be disabled"
+            if [ ! "$IT_TASK_DISPLAY" = "1" ]; then			
+                if [ "$(2> /dev/null rc-status |grep sshd)" != "" ]; then
+		    rc-service sshd stop
+        	    rc-update del sshd
+		    msg_3 "was disabled"
+                else
+                    echo "sshd not active, no action needed"
+                fi
+            fi
+	    echo
+            ;;
+        0 )  # unchanged
+            if [ "$IT_TASK_DISPLAY" = "1" ] &&  [ $IT_DISPLAY_NON_TASKS = "1" ]; then
+                msg_2 "$msg_txt"
+                echo "Will NOT be changed"
+            fi
+
+            ;;
+	
+        1 )  # activate 
+            msg_2 "$msg_txt"
+	    if [ "$IT_SSHD_PORT" = "" ]; then
+		error_msg "Invalid setting: IT_SSHD_PORT must be specified" 1
+	    fi
+	    # This will be run regardless if it was already running,
+	    # since the sshd_config might have changed
+            if [ "$IT_TASK_DISPLAY" -eq 1 ]; then
+		msg_3 "Will be enabled"
+		echo "port: $IT_SSHD_PORT"
+		echo
+	    else
+		ensure_runlevel_default
+		ensure_installed openssh
+		# use requested port
+		sed -i "s/.*Port.*/Port $IT_SSHD_PORT/" /etc/ssh/sshd_config
+		ensure_service_is_added sshd restart
+		# in case some config changes happened, make sure sshd is restarted
+		#rc-service sshd restart
+		msg_1 "sshd listening on port: $IT_SSHD_PORT"
+            fi
+            ;;
+        *)
+            error_msg "Invalid setting: IT_SSHD_SERVICE=$IT_SSHD_SERVICE\nValid options: -1 0 1" 1
+    esac
+}
+
+
+
+
+
+if test -z "$DEPLOY_PATH" ; then
+    # Most likely not sourced...
+    DEPLOY_PATH="$(dirname "$0")/.."               # relative
+    DEPLOY_PATH="$( cd "$DEPLOY_PATH" && pwd )"  # absolutized and normalized
+fi
+. "$DEPLOY_PATH/scripts/extras/utils"
+. "$DEPLOY_PATH/scripts/extras/openrc"
+
+
+
+#==========================================================
+#
+#     Not sourced main
+#
+#==========================================================
+if [ "$IT_INITIAL_SCRIPT" = "" ]; then
+    # Since sourced mode cant be detected in a practiacl way under ash,
+    # I use this workaround
+    IT_INITIAL_SCRIPT=1
+
+    case "$1" in
+	"-?"|"-h"|"--help")
+	    echo "Env paramas"
+	    echo "IT_SSH_HOST_KEYS$(test -z "$IT_SSH_HOST_KEYS" && echo ' - tgz file with host_keys' || echo =$IT_SSH_HOST_KEYS )"
+	    echo "IT_SSHD_SERVICE$(test -z "$IT_SSHD_SERVICE" && echo ' - sshd status (=1/0/1)' || echo =$IT_SSHD_SERVICE )"
+	    echo "IT_SSHD_PORT$(test -z "$IT_SSHD_PORT" && echo ' - what port should sshd use' || echo =$IT_SSHD_PORT )"
+	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
+	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
+	    ;;
+	*)
+	    task_sshd
+    esac
+fi

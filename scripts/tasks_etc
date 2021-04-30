@@ -1,0 +1,96 @@
+#!/bin/sh
+#
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
+# License: MIT
+
+
+replace_default_fs_inittab() {
+    #
+    # The AOK inittab is more complex, and does not need to be modified
+    # to hack sshd to run at boot, so we do not touch it.
+    #
+    if [ "$IT_FILE_SYSTEM" != "AOK" ]; then
+	msg_3 "/etc/inittab"
+	# Get rid of unused getty's
+	inittab=$DEPLOY_PATH/files/inittab-default-FS
+	echo "$inittab"
+	if [ ! "$IT_TASK_DISPLAY" -eq 1 ]; then
+	    cp "$inittab" /etc/inittab
+	fi
+	unset inittab
+    fi
+}
+
+
+task_replace_some_etc_files() {
+    msg_2 "Copying some files to /etc"
+    # If the config file is not found, no action will be taken
+
+    # Add my local hosts
+    msg_txt="/etc/hosts"
+    if [ "$IT_FILE_HOSTS" != "" ]; then
+        msg_3 "$msg_txt"
+        test -f "$IT_FILE_HOSTS" || error_msg "IT_FILE_HOSTS not found!\n$IT_FILE_HOSTS" 1
+        echo "$IT_FILE_HOSTS"
+        if [ "$IT_TASK_DISPLAY" != "1" ]; then
+            cp "$IT_FILE_HOSTS"  /etc/hosts
+        fi
+    elif [ "$IT_TASK_DISPLAY" = "1" ] && [ "$IT_DISPLAY_NON_TASKS" = "1" ]; then
+        msg_3 "$msg_txt"
+        echo "Will NOT be modified"
+    fi
+
+    msg_txt="/etc/apk/repositories"
+    if  [ "$IT_FILE_REPOSITORIES" != "" ]; then
+        msg_3 "$msg_txt"
+        test -f "$IT_FILE_REPOSITORIES" || error_msg "IT_FILE_REPOSITORIES not found!\n$IT_FILE_REPOSITORIES" 1
+        echo "$IT_FILE_REPOSITORIES"
+        if [ "$IT_TASK_DISPLAY" != "1" ]; then
+            cp "$IT_FILE_REPOSITORIES" /etc/apk/repositories
+        fi
+    elif [ "$IT_TASK_DISPLAY" = "1" ] && [ "$IT_DISPLAY_NON_TASKS" = "1" ]; then
+        msg_3 "$msg_txt"
+        echo "Will NOT be modified"
+    fi
+    replace_default_fs_inittab
+    #
+    # Should be done after we (potentially) have updated /etc/inittab
+    #
+    ensure_runlevel_default
+    echo
+}
+
+
+
+
+
+if test -z "$DEPLOY_PATH" ; then
+    # Most likely not sourced...
+    DEPLOY_PATH="$(dirname "$0")/.."               # relative
+    DEPLOY_PATH="$( cd "$DEPLOY_PATH" && pwd )"  # absolutized and normalized
+fi
+. "$DEPLOY_PATH/scripts/extras/utils"
+
+
+#==========================================================
+#
+#     Not sourced main
+#
+#==========================================================
+if [ "$IT_INITIAL_SCRIPT" = "" ]; then
+    # Since sourced mode cant be detected in a practiacl way under ash,
+    # I use this workaround
+    IT_INITIAL_SCRIPT=1
+
+    case "$1" in
+	"-?"|"-h"|"--help")
+	    echo "Env paramas"
+	    echo "IT_FILE_HOSTS$(test -z "$IT_FILE_HOSTS" && echo ' - custom /etc/hosts' || echo =$IT_FILE_HOSTS )"
+	    echo "IT_FILE_REPOSITORIES$(test -z "$IT_FILE_REPOSITORIES" && echo ' - repository_file_to_use' || echo =$IT_FILE_REPOSITORIES )"
+	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
+	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
+	    ;;
+	*)
+	    task_sshd
+    esac
+fi

@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
+# License: MIT
+
+
+task_do_extra_tasks() {
+    msg_txt="Running additional local restore tasks"
+    if [ "$IT_EXTRA_TASK" != "" ]; then
+        if [ "$IT_TASK_DISPLAY" = "1" ]; then
+            msg_2 "$msg_txt"
+	    echo "$IT_EXTRA_TASK"
+        else
+            msg_1 "$msg_txt"
+        fi
+        test -f "$IT_EXTRA_TASK" || error_msg "$IT_EXTRA_TASK not found" 1
+        test -x "$IT_EXTRA_TASK" || error_msg "$IT_EXTRA_TASK not executable" 1
+        if [ "$IT_TASK_DISPLAY" != "1" ]; then
+	    echo "Running:   $IT_EXTRA_TASK"
+	    echo
+	    . "$IT_EXTRA_TASK"
+	    echo "Completed: $IT_EXTRA_TASK"
+	fi
+    elif [ "$IT_TASK_DISPLAY" = "1" ] &&  [ "$IT_DISPLAY_NON_TASKS" = "1" ]; then
+        msg_2 "NO extra tasks will be run"
+    fi
+    echo
+}
+
+
+
+if test -z "$DEPLOY_PATH" ; then
+    # Most likely not sourced...
+    DEPLOY_PATH="$(dirname "$0")/.."               # relative
+    DEPLOY_PATH="$( cd "$DEPLOY_PATH" && pwd )"  # absolutized and normalized
+fi
+. "$DEPLOY_PATH/scripts/extras/utils"
+
+
+#==========================================================
+#
+#     Not sourced main
+#
+#==========================================================
+if [ "$IT_INITIAL_SCRIPT" = "" ]; then
+    # Since sourced mode cant be detected in a practiacl way under ash,
+    # I use this workaround
+    IT_INITIAL_SCRIPT=1
+
+    case "$1" in
+	"-?"|"-h"|"--help")
+	    echo "task_do_extra [script_to_be_run]"
+	    echo
+	    echo "Env paramas"
+	    echo "IT_EXTRA_TASK$(test -z "$IT_EXTRA_TASK" && echo ' - scripts with additional tasks' || echo =$IT_EXTRA_TASK )"
+	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
+	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
+	    ;;
+	*)
+	    test -z "$1" || IT_EXTRA_TASK="$1"
+	    task_do_extra_tasks 
+    esac
+fi
