@@ -6,7 +6,7 @@
 
 task_update() {
     msg_2 "update & fix apk index"
-    if [ "$IT_TASK_DISPLAY" -eq 1 ]; then
+    if [ "$IT_TASK_DISPLAY" = "1" ]; then
         msg_3 "Will happen"
     elif ! apk update && apk fix ; then
         error_msg "Failed to update repos - network issue?" 1
@@ -17,7 +17,7 @@ task_update() {
 
 task_upgrade() {
     msg_2 "upgrade installed apks"
-    if [ "$IT_TASK_DISPLAY" -eq 1 ]; then
+    if [ "$IT_TASK_DISPLAY" = "1" ]; then
         msg_3 "Will happen"
     else
         apk upgrade ||  error_msg "Failed to upgrade apks - network issue?" 1
@@ -31,7 +31,7 @@ task_remove_software() {
 
     if [ "$IT_APKS_DEL" != "" ]; then
         msg_2 "$msg_txt"
-        if [ "$IT_TASK_DISPLAY" -eq 1 ]; then
+        if [ "$IT_TASK_DISPLAY" = "1" ]; then
             echo "$IT_APKS_DEL"
         else
 	    # TODO: fix
@@ -46,7 +46,7 @@ task_remove_software() {
 	    $cmd
         fi
         echo
-    elif [ "$IT_TASK_DISPLAY" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$IT_TASK_DISPLAY" = "1" ] &&  [ "$IT_DISPLAY_NON_TASKS" = "1" ]; then
         msg_2 "$msg_txt"
         echo "Will NOT remove any listed software"
         echo
@@ -58,7 +58,7 @@ task_install_my_software() {
     msg_txt="Installing my selection of software"
     if [ "$IT_APKS_ADD" != "" ]; then
         msg_2 "$msg_txt"
-        if [ "$IT_TASK_DISPLAY" -eq 1 ]; then
+        if [ "$IT_TASK_DISPLAY" = "1" ]; then
             echo "$IT_APKS_ADD"
         else
 	    # TODO: see in task_remove_software() for description
@@ -67,7 +67,7 @@ task_install_my_software() {
             $cmd || error_msg "Failed to install requested software - network issue?" 1
 	fi
         echo
-    elif [ "$IT_TASK_DISPLAY" -eq 1 ] &&  [ $display_non_tasks -eq 1 ]; then
+    elif [ "$IT_TASK_DISPLAY" = "1" ] &&  [ "IT_DISPLAY_NON_TASKS" = "1" ]; then
         msg_2 "$msg_txt"
         echo "Will NOT install any listed software"
         echo
@@ -110,5 +110,3 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
 	    task_timezone
     esac
 fi
-
-

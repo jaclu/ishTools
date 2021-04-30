@@ -39,7 +39,7 @@ task_ssh_host_keys() {
 
 task_sshd() {
     msg_txt="sshd service"
-    case "$IT_SSHD_SERVICE" in
+    case "$IT_SSHD_SERVIVE" in
         -1 ) # disable
             msg_2 "$msg_txt"
             msg_3 "will be disabled"

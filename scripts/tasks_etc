@@ -14,7 +14,7 @@ replace_default_fs_inittab() {
 	# Get rid of unused getty's
 	inittab=$DEPLOY_PATH/files/inittab-default-FS
 	echo "$inittab"
-	if [ ! "$IT_TASK_DISPLAY" -eq 1 ]; then
+	if [ "$IT_TASK_DISPLAY" != "1" ]; then
 	    cp "$inittab" /etc/inittab
 	fi
 	unset inittab
@@ -53,10 +53,6 @@ task_replace_some_etc_files() {
         echo "Will NOT be modified"
     fi
     replace_default_fs_inittab
-    #
-    # Should be done after we (potentially) have updated /etc/inittab
-    #
-    ensure_runlevel_default
     echo
 }
 

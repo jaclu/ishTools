@@ -6,7 +6,7 @@
 
 
 #
-# Fails if $user_shell is not installed.
+# Fails if IT_SHELL is not installed.
 #
 ensure_user_shell_is_installed() {
     if [ "$IT_TASK_DISPLAY" = "1" ]; then
@@ -18,8 +18,10 @@ ensure_user_shell_is_installed() {
 
 
 task_restore_user() {
+#	echo ">> IT_TASK_DISPLAY [$IT_TASK_DISPLAY]"
+#	echo ">> IT_DISPLAY_NON_TASKS [$IT_DISPLAY_NON_TASKS]"
     msg_txt="Username: $IT_UNAME"
-    user_shell=${IT_SHELL:-/bin/ash}
+    IT_SHELL=${IT_SHELL:-/bin/ash}
     if [ "$IT_UNAME" != "" ]; then
         #
         # Ensure user is created
@@ -100,7 +102,7 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
     case "$1" in
 	"-?"|"-h"|"--help")
 	    echo "Env paramas"
-	    echo "IT_UMAME$(test -z "$IT_UNAME" && echo ' - username to ensure exists' || echo =$IT_UNAME )"
+	    echo "IT_UNAME$(test -z "$IT_UNAME" && echo ' - username to ensure exists' || echo =$IT_UNAME )"
 	    echo "IT_SHELL$(test -z "$IT_SHELL" && echo ' - shell for username' || echo =$IT_SHELL )"
 	    echo "IT_HOME_DIR_TGZ$(test -z "$IT_HOME_DIR_TGZ" && echo ' - unpack this tgz file if found' || echo =$IT_HOME_DIR_TGZ )"
 	    echo "IT_HOME_DIR_UNPACKED_PTR$(test -z "$IT_HOME_DIR_UNPACKED_PTR" && echo ' -  Indicates home.tgz is unpacked' || echo =$IT_HOME_DIR_UNPACKED_PTR )"

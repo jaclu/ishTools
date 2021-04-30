@@ -148,7 +148,7 @@ unpack_home_dir() {
     save_current=$5 ; [ "$save_current" != "1" ] && save_current=0
 
     # (mostly) unverified params
-    echo "unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current)"
+    #  echo ">>unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current)"
 
     #
     #  Param checks
@@ -184,7 +184,7 @@ unpack_home_dir() {
 	   
     esac
     # Parsed, verified and in some cases shifted params
-    echo "unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current) - verified params"
+    # echo ">>unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current) - verified params"
  
     #
     #  Actual work starts

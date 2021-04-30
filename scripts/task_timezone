@@ -6,13 +6,12 @@
 
 
 task_timezone() { 
-    time_zone=$1
-    tz_file=/usr/share/zoneinfo/$time_zone
+    tz_file=/usr/share/zoneinfo/$IT_TIME_ZONE
     
     msg_txt="Setting timezone"
-    if [ "$time_zone" != "" ]; then
+    if [ "$IT_TIME_ZONE" != "" ]; then
         msg_2 "$msg_txt"
-        echo "$time_zone"
+        echo "$IT_TIME_ZONE"
         if [ ! "$IT_TASK_DISPLAY" = "1" ]; then
 	    ensure_installed tzdata
             if [ "$tz_file" != "" ] && test -f $tz_file ; then
@@ -22,7 +21,7 @@ task_timezone() {
                 msg_3 "displaying time"
                 date
             else
-                error_msg "BAD TIMEZONE: $time_zone" 1
+                error_msg "BAD TIMEZONE: $IT_TIME_ZONE" 1
             fi
         fi
         echo
