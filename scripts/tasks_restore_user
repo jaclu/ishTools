@@ -81,6 +81,12 @@ task_user_pw_reminder() {
 
 
 
+#==========================================================
+#
+#     main
+#
+#==========================================================
+
 if test -z "$DEPLOY_PATH" ; then
     # Most likely not sourced...
     DEPLOY_PATH="$(dirname "$0")/.."               # relative
@@ -89,14 +95,12 @@ fi
 . "$DEPLOY_PATH/scripts/extras/utils"
 
 
-#==========================================================
-#
-#     Not sourced main
-#
-#==========================================================
 if [ "$IT_INITIAL_SCRIPT" = "" ]; then
+    #
     # Since sourced mode cant be detected in a practiacl way under ash,
-    # I use this workaround
+    # I use this workaround, first script is expected to set it, if set
+    # script can assume to be sourced
+    #
     IT_INITIAL_SCRIPT=1
     
     case "$1" in

@@ -93,6 +93,12 @@ IT_INITIAL_SCRIPT=1
 
 
 . "$DEPLOY_PATH/scripts/extras/utils"
+
+# task_update
+# task_upgrade
+# task_remove_software
+# task_install_my_software
+# task_install_my_software
 . "$DEPLOY_PATH/scripts/tasks_apk"
 . "$DEPLOY_PATH/scripts/task_do_extra"
 . "$DEPLOY_PATH/scripts/task_location_tracker"
@@ -110,21 +116,6 @@ IT_INITIAL_SCRIPT=1
 #     Path and param handling
 #
 #==========================================================
-
-expand_path_old() {
-    #
-    #  Path not starting with / are asumed to be relative to
-    #  $DEPLOY_PATH
-    #
-    this_path="$1"
-    char_1=$(echo "$this_path" | head -c1)
-
-    if [ "$char_1" = "/" ]; then
-        expanded_path="$this_path"
-    else
-        expanded_path="$DEPLOY_PATH/$this_path"
-    fi
-}
 
 expand_path() {
     #
@@ -245,6 +236,14 @@ setup_environment() {
     fi
 }
 
+
+
+
+#==========================================================
+#
+#     Tasks not moved to separate scripts
+#
+#==========================================================
 
 
 task_aok_tweaks() {
