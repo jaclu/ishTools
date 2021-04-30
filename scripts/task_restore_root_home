@@ -1,10 +1,13 @@
 #!/bin/sh
 #
-# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-30
 # License: MIT
-
-
-
+#
+# Version: 0.1.0 2021-04-30
+#    Initial release
+#
+# Part of ishTools
+#
 
 task_restore_root_home() {
     msg_txt="Restoration of /root"

@@ -1,3 +1,14 @@
+#!/bin/sh
+#
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-30
+# License: MIT
+#
+# Version: 0.1.0 2021-04-30
+#    Initial release
+#
+# Part of ishTools
+#
+
 #
 #  Restore $home_dir unless $unpacked_ptr points to an existing file.
 #  If $save_current is 1, curent home dir is moved to $home_dir-OLD and

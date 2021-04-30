@@ -1,8 +1,13 @@
 #!/bin/sh
 #
-# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-30
 # License: MIT
-
+#
+# Version: 0.1.0 2021-04-30
+#    Initial release
+#
+# Part of ishTools
+#
 
 task_nopasswd_sudo() {
     msg_2 "no-pw sudo for group wheel"

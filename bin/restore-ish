@@ -1,16 +1,22 @@
 #!/bin/sh
 #
-# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-13
+# Copyright (c) 2021: Jacob.Lundqvist@gmail.com 2021-04-30
 # License: MIT
 #
-# Version: 0.3.X 2021-04-xx
-#                Created a service that keeps machine running in background without
-#                the need for any login. The openrc handling should be easy to use
-#                At any point where you want to add or modify a service, 
+# Version: 0.4.0 2021-04-30
+#                Reworked tasks into separate scripts, so that others can isolate
+#                parts of this more easily. Also added generic service handling.
 #                first call: ensure_runlevel_default
 #                This will install openrc if not present, and do some iSH related
 #                patches to remove distracting warnings that dont really matter.
 #                Finally it ensures that runlevel is default.
+#                After this you just need to install / config what is needed for
+#                the new service, if not included, copy a script into /etc/init.d
+#                to control the service, and finally call
+#                ensure_service_is_added [service-name] [restart]
+#                If the restart param is given, the service will be restarted,
+#                convenient if you have changed some config.
+#                see task_sshd and task_location_tracker to see usage.
 #          0.3.7 2021-04-13
 #                Second oops in the same day, unintentional removal of a space in
 #		 patch_rc_cgroup_sh() that caused the patch to fail
