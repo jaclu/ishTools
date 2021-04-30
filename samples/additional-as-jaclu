@@ -15,8 +15,24 @@ function msg_3() {
     echo "--- $msg ---"
 }
 
+cd_to() {
+    #
+    # All this just to get rid of shellcheck complaining abot a cd
+    # should always check for failure, thats a bit nitpicky if you
+    # ask me...
+    #
+    dest=$1
+    [ "$dest" = "" ] && dest="$HOME"
+
+    if ! cd "$dest"; then
+	echo "Failed to cd to $dest"
+	exit 1
+    fi
+}
+
 
 msg_2 "Softlinking ~/cloud"
-cd ~/
-ln -sf /iCloud/cloud
+cd_to 
+ln -sf /iCloud/cloud .
 echo
+
