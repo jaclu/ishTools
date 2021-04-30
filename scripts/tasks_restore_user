@@ -46,7 +46,16 @@ task_restore_user() {
             fi
         else
             msg_3 "Already pressent"
-            ensure_user_shell_is_installed
+	    current_shell=$(grep $IT_UNAME /etc/passwd | sed 's/:/ /g'|  awk '{ print $NF }')
+	    if [ "$current_shell" != "$IT_SHELL" ]; then
+		if [ "$IT_TASK_DISPLAY" = "1" ]; then
+		    echo "Will change shell $current_shell -> $IT_SHELL"
+		else
+		    ensure_user_shell_is_installed
+		    usermod -s $IT_SHELL $IT_UNAME
+		    msg_3 "new shell: $IT_SHELL"
+		fi
+	    fi
         fi
         echo
 	
@@ -106,11 +115,13 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
     case "$1" in
 	"-?"|"-h"|"--help")
 	    echo "Env paramas"
+	    echo "-----------"
 	    echo "IT_UNAME$(test -z "$IT_UNAME" && echo ' - username to ensure exists' || echo =$IT_UNAME )"
 	    echo "IT_SHELL$(test -z "$IT_SHELL" && echo ' - shell for username' || echo =$IT_SHELL )"
 	    echo "IT_HOME_DIR_TGZ$(test -z "$IT_HOME_DIR_TGZ" && echo ' - unpack this tgz file if found' || echo =$IT_HOME_DIR_TGZ )"
 	    echo "IT_HOME_DIR_UNPACKED_PTR$(test -z "$IT_HOME_DIR_UNPACKED_PTR" && echo ' -  Indicates home.tgz is unpacked' || echo =$IT_HOME_DIR_UNPACKED_PTR )"
-	    
+
+	    echo
 	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
 	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
 	    ;;

@@ -12,6 +12,7 @@ task_location_tracker() {
 	activate_location_tracker=$IT_LOCATION_SERVICE
     else
 	error_msg "IT_LOCATION_SERVICE not defined, asuming no action"
+	activate_location_tracker=0
     fi
     msg_txt="location_tracker service"
     msg2_txt="  Ensuring iSH continues to run in the background."
@@ -90,8 +91,20 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
     
     case "$1" in
 	"-?"|"-h"|"--help")
+	    echo "task_location_tracker [-1|0|1]"
+	    echo "  If given service status should be one of"
+	    echo "    -1 - disable"
+	    echo "     0 - ignore/nochange"
+	    echo "     1 - enable"
+	    echo
+	    echo "Inastalls and Activates or Disables a service that monitors the iOS location"
+	    echo "this ensures that iSH will continue to run in the background."
+	    echo "defined by IT_LOCATION_SERVICE or command line param."
+	    echo
 	    echo "Env paramas"
+	    echo "-----------"
 	    echo "IT_LOCATION_SERVICE$(test -z "$IT_LOCATION_SERVICE" && echo ' -  location_tacker status (-1/0/1)' || echo =$IT_LOCATION_SERVICE)"
+	    echo
 	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
 	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
 	    ;;

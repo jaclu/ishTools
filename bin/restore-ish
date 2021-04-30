@@ -104,9 +104,9 @@ IT_INITIAL_SCRIPT=1
 . "$DEPLOY_PATH/scripts/task_location_tracker"
 . "$DEPLOY_PATH/scripts/task_restore_root_home"
 . "$DEPLOY_PATH/scripts/task_sudo"
-. "$DEPLOY_PATH/scripts/tasks_etc"
+. "$DEPLOY_PATH/scripts/task_etc_files"
 . "$DEPLOY_PATH/scripts/tasks_restore_user"
-. "$DEPLOY_PATH/scripts/tasks_sshd"
+. "$DEPLOY_PATH/scripts/task_sshd"
 . "$DEPLOY_PATH/scripts/task_timezone"
 
 
@@ -330,7 +330,6 @@ run_tasks() {
 
     task_install_my_software
     task_location_tracker
-    task_ssh_host_keys
     task_sshd
     task_nopasswd_sudo
     task_restore_root_home
@@ -350,7 +349,7 @@ if false; then
     # only those listed below will be run
     msg_1 "custom restore"
     run_tasks() {
-	task_timezone
+	task_restore_user
     }
     # no need to wait if you are testing tasks...
     wait_after_summary=5

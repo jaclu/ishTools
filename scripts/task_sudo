@@ -49,17 +49,15 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
 
     case "$1" in
 	"-?"|"-h"|"--help")
+	    echo "Installs sudo and creates a no password sudo group wheel, if it does not allready exist."
+	    echo
 	    echo "Env paramas"
-	    echo "IT_APKS_DEL$(test -z "$IT_APKS_DEL" && echo ' - packages to remove' || echo =$IT_APKS_DEL )"
-	    echo "IT_APKS_ADD$(test -z "$IT_APKS_ADD" && echo ' - packages to add' || echo =$IT_APKS_ADD )"
-
-	    
-	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
+	    echo "-----------"
+    	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
 	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
 	    ;;
 	*)
-	    test -z "$1" || IT_TIME_ZONE="$1"
-	    task_timezone
+	    task_nopasswd_sudo
     esac
 fi
 

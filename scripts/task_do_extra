@@ -55,8 +55,14 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
 	"-?"|"-h"|"--help")
 	    echo "task_do_extra [script_to_be_run]"
 	    echo
+	    echo "Runs additional script defined by IT_EXTRA_TASK or command line param."
+	    echo "Intended as part of ish-restore, not meaningful to run standalone."
+	    echo "This is mostly for describing the script"
+	    echo
 	    echo "Env paramas"
-	    echo "IT_EXTRA_TASK$(test -z "$IT_EXTRA_TASK" && echo ' - scripts with additional tasks' || echo =$IT_EXTRA_TASK )"
+	    echo "-----------"
+	    echo "IT_EXTRA_TASK$(test -z "$IT_EXTRA_TASK" && echo ' - script with additional task(-s)' || echo =$IT_EXTRA_TASK )"
+	    echo
 	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
 	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
 	    ;;

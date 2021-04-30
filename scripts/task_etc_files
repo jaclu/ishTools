@@ -82,9 +82,19 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
 
     case "$1" in
 	"-?"|"-h"|"--help")
+	    echo "Replaces some /etc files:"
+	    echo " if IT_FILE_HOSTS is set this will replace /etc/hots"
+	    echo " if IT_FILE_REPOSITORIES is set this will replace /etc/apk/repositories"
+	    echo "If the default /etc/inittab from iSH is detected it is replaced with one"
+	    echo "where all gettys are disabled, since they arent used anyhow,"
+	    echo "and openrc settings are corected. This will not happen on AOK filesystems"
+	    echo "Their inittab is mostly ok"
+	    echo
 	    echo "Env paramas"
+	    echo "-----------"
 	    echo "IT_FILE_HOSTS$(test -z "$IT_FILE_HOSTS" && echo ' - custom /etc/hosts' || echo =$IT_FILE_HOSTS )"
 	    echo "IT_FILE_REPOSITORIES$(test -z "$IT_FILE_REPOSITORIES" && echo ' - repository_file_to_use' || echo =$IT_FILE_REPOSITORIES )"
+	    echo
 	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
 	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
 	    ;;

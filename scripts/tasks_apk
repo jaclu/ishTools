@@ -100,15 +100,24 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
 
     case "$1" in
 	"-?"|"-h"|"--help")
+	    echo "Some tasks to manipulate what apks are installed"
+	    echo " task_update  - updates repository"
+	    echo " task_upgrade - upgrades all installed apks"
+	    echo " task_remove_software -  deletes all apks listed in IT_APKS_DEL"
+	    echo " task_install_my_software - adds all apks listed in IT_APKS_ADD"
+	    echo
 	    echo "Env paramas"
-	    echo "IT_APKS_DEL$(test -z "$IT_APKS_DEL" && echo ' - packages to remove' || echo =$IT_APKS_DEL )"
-	    echo "IT_APKS_ADD$(test -z "$IT_APKS_ADD" && echo ' - packages to add' || echo =$IT_APKS_ADD )"
-
+	    echo "-----------"
+	    echo "IT_APKS_DEL$(test -z "$IT_APKS_DEL" && echo ' - packages to remove, comma separated' || echo =$IT_APKS_DEL )"
+	    echo "IT_APKS_ADD$(test -z "$IT_APKS_ADD" && echo ' - packages to add, comma separated' || echo =$IT_APKS_ADD )"
+	    echo
 	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
 	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
 	    ;;
 	*)
-	    test -z "$1" || IT_TIME_ZONE="$1"
-	    task_timezone
+	    task_update
+	    [ "$IT_APKS_DEL" != "" ] && task_remove_software
+	    task_upgrade
+	    [ "$IT_APKS_ADD" != "" ] && task_install_my_software
     esac
 fi

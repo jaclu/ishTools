@@ -60,8 +60,12 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
 	"-?"|"-h"|"--help")
 	    echo "task_timezone [time_zone]"
 	    echo
+	    echo "Sets time-zone baesed on IT_TIME_ZONE or command line param"
+	    echo
 	    echo "Env paramas"
+	    echo "-----------"
 	    echo "IT_TIME_ZONE$(test -z "$IT_TIME_ZONE" && echo ' - set time-zone' || echo =$IT_TIME_ZONE )"
+	    echo
 	    echo "IT_TASK_DISPLAY$(test -z "$IT_TASK_DISPLAY" && echo ' -  if 1 will only display what will be done' || echo =$IT_TASK_DISPLAY)"
 	    echo "IT_DISPLAY_NON_TASKS$(test -z "$IT_DISPLAY_NON_TASKS" && echo ' -  if 1 will show what will NOT happen' || echo =$IT_DISPLAY_NON_TASKS)"
 	    ;;
