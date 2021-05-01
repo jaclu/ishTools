@@ -16,7 +16,9 @@ restoree-ish has two primary usage cases
 
 ## Filestructure
 ### /bin 
-The scripts included in this repo.
+The main apps included in this repo.
+### /scripts
+The modules used by restore-ish, offered in a way to make them useable in a standalone fashion.
 ### /files
 This is where I store some files to deploy, depending on your config
   - inittab-default-FS -> /etc/inittab
