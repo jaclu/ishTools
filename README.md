@@ -77,22 +77,6 @@ Actions taken, deppending on your config:
   I use this to be have my private configs outside of this repo. I have included a sample, to give you an idea.
 - If a user was created and no password is yet defined, prints a reminder to set that users password, since otherwise you will not be able to ssh into the box.
 
-## Procedure to restore your environment
-I deploy this to iCloud, this way I can use it on any of my devices
-My procedure on a pristine iSH system (as root)
-- mount -t ios . /mnt (or any other local path)
-  - Chose where this is located on your tablet / phone
-- /mnt/bin/restore-ish, takes one to a couple of minutes, depending on how many apks you install.
-  - If user was defined, displays a reminder to set the user password if it has not been set yet.
-- Set the user password if requested to do so, following the instructions.
-- Usage once restore-ish is completed.
-  - default FS
-    - For local access, just do su - {your username}
-  - AOK FS
-    - For local access just exit the current session and login as {username} with or without password, depending on if one was set.
-  - Common for both
-    - For ssh access, asuming you have activated sshd, as soon as "sshd listening on port: xx" is displayed, you can login using the displayed port and as long as the used account has a password set.
-
 ## Scripts
 I have split up restore-ish into separate modules, so that some parts of it can be run separatedly
 You can run the individual scripts with a -h param to get a summary of what it offers, and what environment variables it relies on.
@@ -119,6 +103,22 @@ Creates a user, adds it to the no passwd sudo group, sets/changes shell, optiona
 ### task_sudo
 Adds a no password sudo group
 
+
+## Procedure to restore your environment
+I deploy this to iCloud, this way I can use it on any of my devices
+My procedure on a pristine iSH system (as root)
+- mount -t ios . /mnt (or any other local path)
+  - Chose where this is located on your tablet / phone
+- /mnt/bin/restore-ish, takes one to a couple of minutes, depending on how many apks you install.
+  - If user was defined, displays a reminder to set the user password if it has not been set yet.
+- Set the user password if requested to do so, following the instructions.
+- Usage once restore-ish is completed.
+  - default FS
+    - For local access, just do su - {your username}
+  - AOK FS
+    - For local access just exit the current session and login as {username} with or without password, depending on if one was set.
+  - Common for both
+    - For ssh access, asuming you have activated sshd, as soon as "sshd listening on port: xx" is displayed, you can login using the displayed port and as long as the used account has a password set.
 
 ## sshd related things to be aware of
 
