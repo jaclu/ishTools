@@ -90,8 +90,35 @@ My procedure on a pristine iSH system (as root)
     - For local access just exit the current session and login as {username} with or without password, depending on if one was set.
   - Common for both
     - For ssh access, asuming you have activated sshd, as soon as "sshd listening on port: xx" is displayed, you can login using the displayed port and as long as the used account has a password set.
-    
-### sshd related things to be aware of
+
+## Scripts
+I have split up restore-ish into separate modules, so that some parts of it can be run separatedly
+You can run the individual scripts with a -h param to get a summary of what it offers, and what environment variables it relies on.
+Below is a list of what is propably the parts that are most usefull as standalones.
+
+### task_timezone
+Sets time-zone, also installing all needed tools
+  
+### task_location_tracker
+Sets up a location_tracker service, this keeps ish running in the background right from bootup, avoiding the need for having to login to get this functionality through the login scripts.
+
+### task_sshd
+Does all needed to set up a sshd service
+
+### task_etc_files
+Deploys a custom /etc/hosts for all your non dns hosts. Deploys /etc/apk/repositories of your choosing
+
+### task_restore_root_home
+Populates /root from a tgz, optionally moving previous /root to /root-OLD
+
+### tasks_restore_user
+Creates a user, adds it to the no passwd sudo group, sets/changes shell, optionally populates home-dir from a tgz
+
+### task_sudo
+Adds a no password sudo group
+
+
+## sshd related things to be aware of
 
 Remember that even if you login using pubkeys, you still need to define a password, since by default sshd does not allow logins to passwordless accounts.
 
