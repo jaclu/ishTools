@@ -27,8 +27,10 @@ task_restore_root_home() {
 
 if test -z "$DEPLOY_PATH" ; then
     # Most likely not sourced...
-    DEPLOY_PATH="$(dirname "$0")/.."               # relative
-    DEPLOY_PATH="$( cd "$DEPLOY_PATH" && pwd )"  # absolutized and normalized
+    #DEPLOY_PATH="$(busybox dirname "$0")/.."               # relative
+    #DEPLOY_PATH="$( cd "$DEPLOY_PATH" && pwd )"  # absolutized and normalize
+    DEPLOY_PATH="$(dirname `pwd`)"
+    echo ">>DEPLOY_PATH=$DEPLOY_PATH"
 fi
 . "$DEPLOY_PATH/scripts/extras/utils"
 . "$DEPLOY_PATH/scripts/extras/unpack_home_dir"

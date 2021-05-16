@@ -20,6 +20,10 @@ task_location_tracker() {
     fi
     msg_txt="location_tracker service"
     msg2_txt="  Ensuring iSH continues to run in the background."
+    if [ "$IT_FILE_SYSTEM" = "AOK" ] && [ "$activate_location_tracker" = "1" ]; then
+    	activate_location_tracker=-1
+	echo "WARNING: This is an AOK filesystem, this service is not needed"
+    fi
     case "$activate_location_tracker" in
         -1 ) # disable
 	    msg_2 "$msg_txt"

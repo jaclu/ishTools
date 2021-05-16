@@ -252,7 +252,7 @@ setup_environment() {
 #==========================================================
 
 
-task_aok_tweaks() {
+not_task_aok_tweaks() {
     prof_dbg=/tmp/profile.debug
 
     if [ "$IT_FILE_SYSTEM" = "AOK" ]; then
@@ -326,7 +326,7 @@ run_tasks() {
     task_replace_some_etc_files
     task_update
     task_timezone
-    task_aok_tweaks
+    #task_aok_tweaks
 
     # do before upgrade to avoid time waste of upgrading
     # only to then remove it
