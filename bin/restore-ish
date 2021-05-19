@@ -19,9 +19,9 @@
 #                see task_sshd and task_location_tracker to see usage.
 #          0.3.7 2021-04-13
 #                Second oops in the same day, unintentional removal of a space in
-#		 patch_rc_cgroup_sh() that caused the patch to fail
+#                 patch_rc_cgroup_sh() that caused the patch to fail
 #          0.3.6 2021-04-13
-# 		 Ouch fixed embarrasing typo in task_sshd when sshd is disabled
+#                  Ouch fixed embarrasing typo in task_sshd when sshd is disabled
 #          0.3.5 2021-04-13
 #                Refactored task_restore_root_home & task_restore_user
 #                to use a common function for restoring home_dir and
@@ -75,13 +75,14 @@
 #
 
 
-
 #
 # Find where this package is deployed, then use this for relative locations
 #
-DEPLOY_PATH="$(dirname "$0")/.."               # relative
+DEPLOY_PATH="$(dirname "$0")/.."             # relative
 DEPLOY_PATH="$( cd "$DEPLOY_PATH" && pwd )"  # absolutized and normalized
 test -d "$DEPLOY_PATH" || error_msg "could not identify DEPLOY_PATH [$DEPLOY_PATH] !!" 1
+
+. "$DEPLOY_PATH/scripts/extras/utils.sh"
 
 
 #
@@ -89,158 +90,23 @@ test -d "$DEPLOY_PATH" || error_msg "could not identify DEPLOY_PATH [$DEPLOY_PAT
 # workaround: first script running sets IT_INITIAL_SCRIPT=1,
 # any other detecting it is set will assume to be sourced.
 #
-if [ ! -z "$IT_INITIAL_SCRIPT" ]; then
-    echo
-    echo "EROR: restore-ish can NOT be sourced!"
-    echo
-    exit 1
-fi
+[ ! -z "$IT_INITIAL_SCRIPT" ] && error_msg "EROR: restore-ish can NOT be sourced!" 1
 IT_INITIAL_SCRIPT=1
 
 
-. "$DEPLOY_PATH/scripts/extras/utils"
-
-# task_update
-# task_upgrade
-# task_remove_software
-# task_install_my_software
-# task_install_my_software
-. "$DEPLOY_PATH/scripts/tasks_apk"
-. "$DEPLOY_PATH/scripts/task_do_extra"
-. "$DEPLOY_PATH/scripts/task_location_tracker"
-. "$DEPLOY_PATH/scripts/task_restore_root_home"
-. "$DEPLOY_PATH/scripts/task_sudo"
-. "$DEPLOY_PATH/scripts/task_etc_files"
-. "$DEPLOY_PATH/scripts/tasks_restore_user"
-. "$DEPLOY_PATH/scripts/task_sshd"
-. "$DEPLOY_PATH/scripts/task_timezone"
-
-
-
-#==========================================================
 #
-#     Path and param handling
+#  Include all dependencies
 #
-#==========================================================
-
-expand_path() {
-    #
-    #  Path not starting with / are asumed to be relative to
-    #  $DEPLOY_PATH
-    #
-    this_path="$1"
-    char_1=$(echo "$this_path" | head -c1)
-
-    if [ "$char_1" = "/" ]; then
-        echo "$this_path"
-    else
-        echo "$DEPLOY_PATH/$this_path"
-    fi
-}
-
-
-expand_path_all_params() {
-    #
-    # Expands all path params that might be relative
-    # to the deploy location into a full path
-    #
-    if [ "$IT_FILE_REPOSITORIES" = "*** do not touch ***" ]; then
-        IT_FILE_REPOSITORIES=""
-    elif [ "$IT_FILE_REPOSITORIES" != "" ] ; then
-        IT_FILE_REPOSITORIES=$(expand_path "$IT_FILE_REPOSITORIES")
-    else
-        # Use default Alpine repofile
-        IT_FILE_REPOSITORIES="$DEPLOY_PATH/files/repositories-Alpine-v3.12"
-    fi
-    if [ "$IT_FILE_HOSTS" != "" ]; then
-        IT_FILE_HOSTS=$(expand_path "$IT_FILE_HOSTS")
-    fi
-    if [ "$IT_SSH_HOST_KEYS" != "" ]; then
-        #echo "### expanding: [$IT_SSH_HOST_KEYS]"        
-        IT_SSH_HOST_KEYS=$(expand_path "$IT_SSH_HOST_KEYS")
-        #echo "    expanded into: [$IT_SSH_HOST_KEYS]"
-    fi
-    if [ "$IT_HOME_DIR_TGZ" != "" ]; then
-        #echo "### expanding: [$IT_HOME_DIR_TGZ]"        
-        IT_HOME_DIR_TGZ=$(expand_path "$IT_HOME_DIR_TGZ")
-        #echo "    expanded into: [$IT_HOME_DIR_TGZ]"
-    fi
-    if [ "$IT_ROOT_HOME_TGZ" != "" ]; then
-        #echo "### expanding: [$IT_ROOT_HOME_TGZ]"        
-        IT_ROOT_HOME_TGZ=$(expand_path "$IT_ROOT_HOME_TGZ")
-        #echo "    expanded into: [$IT_ROOT_HOME_TGZ]"
-    fi
-    if [ "$IT_EXTRA_TASK" != "" ]; then
-        #echo "### expanding: [$IT_EXTRA_TASK]"
-        IT_EXTRA_TASK=$(expand_path "$IT_EXTRA_TASK")
-        #echo "    expanded into: [$IT_EXTRA_TASK]"
-    fi
-    #
-    # switch to new params
-    #
-}
-
-
-setup_environment() {
-    #
-    #   Identify the local env, and parse config file
-    #
- 
-
-    #
-    # Set some defaults, in case they are not set in the config file
-    # This prevents shellcheck from giving waarnings aboout unasigned variables
-    # 
-    IT_UNAME=""
-    IT_APKS_DEL=""
-    IT_APKS_ADD=""
-    IT_TIME_ZONE=""
-    IT_ROOT_UNPACKED_PTR=""
-    IT_HOME_DIR_UNPACKED_PTR=""
-    IT_EXTRA_TASK=""
-    
-    #
-    # Config file
-    #
-    cfg_file=$DEPLOY_PATH/custom/ishTols.cfg
-    if [ "$cfg_file" != "" ] && test -f "$cfg_file" ; then
-        . "$cfg_file"
-    else
-        echo
-        echo "ERROR: No config file ($cfg_file) found, aborting"
-        echo
-        echo "You should find a template config file in the samples dir of this repo,"
-        echo "copy it to the above location, and tweak it to your preferences."
-        echo
-        exit 1
-    fi
-    # process path references in config file
-    expand_path_all_params
-
-    #
-    # Extra checks for numerical params
-    #
-    if [ "$IT_DISPLAY_NON_TASKS" = "" ] || [ "$IT_DISPLAY_NON_TASKS" != "1" ]; then
-        IT_DISPLAY_NON_TASKS="0"
-    fi
-    
-    # Default sshd port
-    if [ "$IT_SSHD_PORT" = "" ]; then
-	IT_SSHD_PORT=1022
-    fi
-   
-    if [ "$IT_ROOT_REPLACE" = "" ] || [ "$IT_ROOT_REPLACE" -ne 1 ]; then
-        IT_ROOT_REPLACE=0
-    fi
-
-    #
-    # Unset variables depending on others
-    #
-    if [ "$IT_UNAME" = "" ]; then
-	# dont unpack user home without an username
-        IT_HOME_DIR_TGZ=""
-    fi
-}
+. "$DEPLOY_PATH/scripts/extras/read_config.sh"
+. "$DEPLOY_PATH/scripts/m_tasks_etc_files.sh"
+. "$DEPLOY_PATH/scripts/m_tasks_apk.sh"
+. "$DEPLOY_PATH/scripts/m_tasks_user.sh"
+. "$DEPLOY_PATH/scripts/task_timezone.sh"
+. "$DEPLOY_PATH/scripts/task_bgrun.sh"
+. "$DEPLOY_PATH/scripts/task_sshd.sh"
+. "$DEPLOY_PATH/scripts/task_do_extra.sh"
+. "$DEPLOY_PATH/scripts/task_sudo.sh"
+. "$DEPLOY_PATH/scripts/task_restore_root.sh"
 
 
 
@@ -269,49 +135,11 @@ not_task_aok_tweaks() {
 
 
 
-
-
 #==========================================================
 #
-#     Main
+#     Task selection
 #
 #==========================================================
-
-main() {
-    setup_environment
-    
-    #
-    # Display all tasks
-    #
-    IT_TASK_DISPLAY=1
-    echo
-    msg_1 "Displaying what tasks will be performed"
-    run_tasks
-    echo
-    echo "Press Ctrl-C if you want to have more time"
-    echo "to observe the changes that will be done."
-    echo
-    echo "Waiting $wait_after_summary secs, in case you want to abort..."
-    echo
-    sleep $wait_after_summary
-    
-
-    #
-    # Do all tasks
-    #
-    IT_TASK_DISPLAY=0
-    msg_1 "Restore begins"
-    run_tasks
-    
-
-    # Ensure tmp directory is gone
-    clear_work_dir
-    
-    msg_2 "All tasks done, system restored!"
-}
-
-
-
 
 #
 # If IT_TASK_DISPLAY=1 then what will be done is displayed
@@ -330,17 +158,20 @@ run_tasks() {
 
     # do before upgrade to avoid time waste of upgrading
     # only to then remove it
+    #echo ">> task_remove_software [$IT_APKS_DEL]"
     task_remove_software
 
     task_upgrade
 
+    #echo ">> task_install_my_software [$IT_APKS_ADD]" 
     task_install_my_software
-    task_location_tracker
+    
+    task_run_in_background
     task_sshd
     task_nopasswd_sudo
-    task_restore_root_home
+    task_restore_root
     task_restore_user
-    task_do_extra_tasks
+    task_do_extra_task
     task_user_pw_reminder
 }
 
@@ -355,7 +186,7 @@ if false; then
     # only those listed below will be run
     msg_1 "custom restore"
     run_tasks() {
-	task_restore_user
+        task_upgrade
     }
     # no need to wait if you are testing tasks...
     wait_after_summary=5
@@ -366,4 +197,39 @@ fi
 
 
 
-main
+#==========================================================
+#
+#     Main
+#
+#==========================================================
+
+read_config
+
+#
+# Display all tasks
+#
+IT_TASK_DISPLAY=1
+echo
+msg_1 "Displaying what tasks will be performed"
+run_tasks
+echo
+echo "Press Ctrl-C if you want to have more time"
+echo "to observe the changes that will be done."
+echo
+echo "Waiting $wait_after_summary secs, in case you want to abort..."
+echo
+sleep $wait_after_summary
+
+
+#
+# Do all tasks
+#
+IT_TASK_DISPLAY=0
+msg_1 "Restore begins"
+run_tasks
+
+
+# Ensure tmp directory is gone
+clear_work_dir
+
+msg_2 "All tasks done, system restored!"

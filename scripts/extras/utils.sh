@@ -9,6 +9,12 @@
 # Part of ishTools
 #
 
+#
+# This should only be sourced...
+#
+[ "$(basename $0)" = "utils.sh" ] && error_msg "utils.sh is not meant to be run stand-alone!" 1
+
+
 #==========================================================
 #
 #     Messagging and Error display
@@ -19,13 +25,19 @@ error_msg() {
     msg=$1
     err_code=$2
 
-    #printf "\nERROR: %s\n\n" "$msg"
-    printf "\nERROR: $msg\n\n"
+    printf "\nERROR: $msg\n"
 
     if [ "$err_code" != "" ]; then
-	clear_work_dir # clear tmp extract dir
+        clear_work_dir # clear tmp extract dir
+        echo
         exit "$err_code"
     fi
+}
+
+
+warning_msg() {
+    msg=$1
+    printf "\nWARNING: $msg\n"
 }
 
 
@@ -44,20 +56,19 @@ msg_1() {
     # be split in half. Since this only handles ints, the /2*2 will result
     # in an even number rounded down.
     #
-    if [ "${#msg}" -ne "$(( ${#msg}/2*2 ))" ] ; then
-        msg=" $msg"
-    fi
+    [ "${#msg}" -ne "$(( ${#msg}/2*2 ))" ] && msg=" $msg"
 
     if [ "${#msg}" -ge "$max_length" ]; then
-	# if string is to long, dont use padding
+        # if string is to long, dont use padding
         pad_str=""
     else
-	pad_length=$(( (max_length - ${#msg})/2  ))
-	# posix friendly way of generating x instances of a char
-	pad_str=$( head -c $pad_length  < /dev/zero | tr '\0' ' ' )
+        pad_length=$(( (max_length - ${#msg})/2  ))
+        # posix friendly way of generating x instances of a char
+        pad_str=$( head -c $pad_length  < /dev/zero | tr '\0' ' ' )
     fi
 
     border_line="+$( head -c $max_length  < /dev/zero | tr '\0' '=' )+"
+
     #
     # TODO:  When generating the spacer padding as a variable,
     # it only translates to one space, but if used as an expression,
@@ -76,14 +87,12 @@ msg_1() {
 
 msg_2() {
     msg=$1
-
     echo "=== $msg ==="
 }
 
 
 msg_3() {
     msg=$1
-
     echo "--- $msg ---"
 }
 
@@ -109,12 +118,30 @@ ensure_installed() {
     test -z "$pk" && error_msg "ensure_installed() called with no param!" 1
     test -z "$msg" && msg="Installing dependency $pk"
     if [ "$(apk info -e $pk)" = "" ]; then
-	msg_3 "$msg"
+        msg_3 "$msg"
         apk add $pk
-	return 1
+        return 1
     fi
     return 0
 }
+
+
+
+#
+# Fails if IT_SHELL is not installed during processing.
+#
+ensure_shell_is_installed() {
+    SHELL_NAME=$1
+     
+    [ "$SHELL_NAME" = "" ] && error_msg "ensure_shell_is_installed() - no shell paraam!" 1
+    if [ "$IT_TASK_DISPLAY" = "1" ]; then
+        test -x "$SHELL_NAME" || warning_msg "$SHELL_NAME not found\n>>> Make sure it gets installed!<<<\n"
+    else
+        test -f "$SHELL_NAME" || error_msg "Shell not found: $SHELL_NAME" 1
+        test -x "$SHELL_NAME" || error_msg "Shell not executable: $SHELL_NAME" 1
+    fi   
+}
+
 
 
 clear_work_dir() {
@@ -123,19 +150,22 @@ clear_work_dir() {
     extract_location="/tmp/restore-ish-$$"
     rm $extract_location -rf 2> /dev/null
     case "$new_space" in
-	"1")
-	    mkdir -p $extract_location
-	    cd $extract_location || error_msg "clear_work_dir() could not cd !" 1
-	    ;;
-	"")
-	    ;;
-	*)
-	    echo
-	    echo "ERROR: clear_work_dir() accepted params: nothing|1"
-	    exit 1
+    
+        "1")
+            mkdir -p $extract_location
+            cd $extract_location || error_msg "clear_work_dir() could not cd !" 1
+            ;;
+            
+        "")
+            ;;
+            
+        *)
+            echo
+            echo "ERROR: clear_work_dir() accepted params: nothing|1"
+            exit 1
+            
     esac
 }
-
 
 
 #
@@ -148,7 +178,8 @@ unpack_home_dir() {
     home_dir=$2
     fname_tgz=$3
     unpacked_ptr=$4
-    save_current=$5 ; [ "$save_current" != "1" ] && save_current=0
+    save_current=$5
+    [ "$save_current" != "1" ] && save_current=0
 
     # (mostly) unverified params
     #  echo ">>unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current)"
@@ -157,15 +188,11 @@ unpack_home_dir() {
     #  Param checks
     #
     # Some of the checks below are ignored when $IT_TASK_DISPLAY is 1 ie just inforoming what will happen
-    if [ "$username" = "" ]; then
-	error_msg "unpack_home_dir() no username given" 1
-    fi
+    [ "$username" = "" ] && error_msg "unpack_home_dir() no username given" 1
     if [ ! "$IT_TASK_DISPLAY" = "1" ] && [ "$(grep -c ^"$username" /etc/passwd)" != "1" ]; then
-	error_msg "unpack_home_dir($username) - username not found in /etc/passwd" 1
+        error_msg "unpack_home_dir($username) - username not found in /etc/passwd" 1
     fi
-    if [ "$home_dir" = "" ]; then
-        error_msg "unpack_home_dir() no home_dir given" 1
-    fi
+    [ "$home_dir" = "" ] && error_msg "unpack_home_dir() no home_dir given" 1
     if [ ! "$IT_TASK_DISPLAY" = "1" ] && [ ! -d "$home_dir" ]; then
         error_msg "unpack_home_dir($username, $home_dir) - home_dir does not exist" 1
     fi
@@ -173,19 +200,21 @@ unpack_home_dir() {
         error_msg "unpack_home_dir($username, $home_dir) - username does not own home_dir" 1
     fi
     if [ "$fname_tgz" = "" ] || [ "$fname_tgz" = "1" ]; then
-	error_msg "unpack_home_dir($username, $home_dir,) - No tar file to be extracted given" 1
+        error_msg "unpack_home_dir($username, $home_dir,) - No tar file to be extracted given" 1
     fi
-    if ! test -f "$fname_tgz" ; then
-    	error_msg "tar file not found:\n[$fname_tgz]" 1
-    fi 
+    ! test -f "$fname_tgz" && error_msg "tar file not found:\n[$fname_tgz]" 1
+
     case "$unpacked_ptr" in
-	"0"|"1" )
-  	    # Not actual error, no unpacked_ptr given so save_current got shifted here"
-	    unpacked_ptr=""
- 	    ;;
-	*)
-	   
+    
+        "0"|"1" )
+            # Not actual error, no unpacked_ptr given so save_current got shifted here"
+            unpacked_ptr=""
+            ;;
+
+        *)
+        
     esac
+    
     # Parsed, verified and in some cases shifted params
     # echo ">>unpack_home_dir($username,$home_dir,$fname_tgz,$unpacked_ptr,$save_current) - verified params"
  
@@ -194,56 +223,50 @@ unpack_home_dir() {
     #
     msg_2 "$msg_txt"
     if [ $save_current -eq 1 ]; then
-	do_unpack=1 # always restore
+        do_unpack=1 # always restore
     else
-    	if test -f "$unpacked_ptr" && [ "$unpacked_ptr" != "" ] ; then
+        if test -f "$unpacked_ptr" && [ "$unpacked_ptr" != "" ] ; then
             msg_3 "Already restored"
             echo "Found: $unpacked_ptr"
             do_unpack=0
-	else
+        else
             do_unpack=1
-   	fi
+        fi
     fi
     if [ $do_unpack -eq 1 ]; then
         if [ "$IT_TASK_DISPLAY" = "1" ]; then
-	    msg_3 "Will be restored"
- 	    echo "Using: $fname_tgz"
-	    if [ $save_current -eq 1 ]; then
-		msg_3 "Previous content will be moved to ${home_dir}-OLD"
-	    fi
-	else
-	    clear_work_dir 1
-	    msg_3 "Extracting"
-	    echo "$fname_tgz"
-	    if ! tar xfz "$fname_tgz" 2> /dev/null ; then
-		error_msg "Failed to unpack tarball" 1
-	    fi
-	    if [ ! -d "$extract_location/$username" ]; then
-		error_msg "No $username top dir found in the tarfile!" 1
-	    elif [ "$(find . -maxdepth 1 | wc -l)" != "2" ]; then
-		# suspicious
-		error_msg "Content outside intended destination found, check the tarfile!" 1
-	    fi
- 	    echo "Successfully extracted content"
-
-	    if [ $save_current -eq 1 ]; then
-		rm "$home_dir"-OLD -rf
-		mv "$home_dir" "$home_dir}"-OLD
-		msg_3 "Previous content has been moved to ${home_dir}-OLD"
-		mv "$username" "$home_dir"
-	    else
-		msg_3 "Overwriting into current $home_dir"
-		cd "$home_dir" || error_msg "Failed to cd into $home_dir" 1
-		cd ..
-		cp -a "$extract_location/$username" .
-	    fi
+            msg_3 "Will be restored"
+            echo "Using: $fname_tgz"
+            [ $save_current -eq 1 ] && msg_3 "Previous content will be moved to ${home_dir}-OLD"
+        else
+            clear_work_dir 1
+            msg_3 "Extracting"
+            echo "$fname_tgz"
+            ! tar xfz "$fname_tgz" 2> /dev/null && error_msg "Failed to unpack tarball" 1
+            if [ ! -d "$extract_location/$username" ]; then
+                error_msg "No $username top dir found in the tarfile!" 1
+            elif [ "$(find . -maxdepth 1 | wc -l)" != "2" ]; then
+                # suspicious
+                error_msg "Content outside intended destination found, check the tarfile!" 1
+            fi
+            echo "Successfully extracted content"
+            
+            if [ $save_current -eq 1 ]; then
+                rm "$home_dir"-OLD -rf
+                mv "$home_dir" "$home_dir}"-OLD
+                msg_3 "Previous content has been moved to ${home_dir}-OLD"
+                mv "$username" "$home_dir"
+            else
+                msg_3 "Overwriting into current $home_dir"
+                cd "$home_dir" || error_msg "Failed to cd into $home_dir" 1
+                cd ..
+                cp -a "$extract_location/$username" .
+            fi
             msg_3 "$home_dir restored"
-	    clear_work_dir  # Remove tmp directory
+            clear_work_dir  # Remove tmp directory
         fi
     fi
 }
-
-
 
 
 #==========================================================
@@ -255,17 +278,6 @@ unpack_home_dir() {
 #
 #  Identify fiilesystem, a lot of other operations depend on it
 #
-if test -d /AOK ; then
-    IT_FILE_SYSTEM='AOK'
-else
-    # Default iSH
-    IT_FILE_SYSTEM='iSH' 
-fi
+test -d /AOK && IT_FILE_SYSTEM='AOK' || IT_FILE_SYSTEM='iSH' 
 
 
-#
-# This should only be sourced...
-#
-if [ "$(basename $0)" = "utils.sh" ]; then
-    error_msg "utils.sh is not meant to be run stand-alone!" 1
-fi
