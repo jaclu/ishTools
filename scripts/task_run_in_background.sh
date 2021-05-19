@@ -78,14 +78,13 @@ task_run_in_background() {
             if [ "$IT_TASK_DISPLAY" = "1" ]; then
                 msg_3 "Will be enabled"
             else
-                rc_runlevel=sysinit
-                
+                ensure_installed openrc
                 if [ "$(rc-update -a |grep runbg)" != "" ]; then
                     msg_3 "Removing broken AOK service runbg"
                     # Handling broken AOK service, remove it if found, and kill its 
                     # disconnected stray procss cat /dev/location
-                    disable_service runbg
-                    [ $? = 0 ] && killall cat
+                    rc_runlevel=sysinit
+                    disable_service runbg && killall cat
                 fi
                 
                 rc_runlevel=default
@@ -161,7 +160,7 @@ if [ "$IT_INITIAL_SCRIPT" = "" ]; then
     if [ $p_help = 0 ]; then
         _run_this
     else
-        echo "task_bgrun.sh [cfg] [h|-1|0|1]"
+        echo "task_run_in_background.sh [cfg] [h|-1|0|1]"
         echo "  If given service status should be one of"
         echo "    -1 - disable"
         echo "     0 - ignore/nochange"

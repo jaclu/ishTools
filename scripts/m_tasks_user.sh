@@ -57,7 +57,7 @@ task_restore_user() {
                     groupdel $IT_UNAME
                     error_msg "task_restore_user() - useradd failed to complete." 1
                 fi
-                msg_3 "added: $IT_UNAME"
+                msg_3 "added: $IT_UNAME ($IT_UID:$IT_GID)"
                 msg_3 "shell: $IT_SHELL"
             fi
         else
