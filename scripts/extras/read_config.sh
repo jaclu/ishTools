@@ -34,8 +34,22 @@ read_config() {
     # Config file
     #
     cfg_file=$DEPLOY_PATH/custom/ishTols.cfg
+    
     if [ "$cfg_file" != "" ] && test -f "$cfg_file" ; then
+        msg_2 "Reading configuration"
+	echo " $cfg_file"
         . "$cfg_file"
+	
+	#
+	# If a config file named as utils/HOSTNAME.cfg is found, reaf it after main config
+	# in order to override with host specific settings.
+	#
+	cfg_file=$DEPLOY_PATH/custom/settings-$(hostname).cfg
+	if [ -f "$cfg_file" ]; then 
+    	    echo " $cfg_file"
+	    . $cfg_file
+	fi
+
     else
         echo
         echo "ERROR: No config file ($cfg_file) found, aborting"
